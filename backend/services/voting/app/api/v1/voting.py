@@ -14,13 +14,22 @@ def health():
     return {"status": "Voting service running"}
 
 
+
+from app.core.dependencies import get_current_user
+
+
 @router.post("/cast-vote")
 def cast_vote_endpoint(
     vote_data: CastVoteRequest,
     db: Session = Depends(get_db),
+    user=Depends(get_current_user),
 ):
     try:
-        vote = cast_vote(db, vote_data)
+        vote = cast_vote(
+            db,
+            vote_data,
+            user_id=user["user_id"],   # 🔥 from JWT
+        )
 
         return {
             "message": "Vote cast successfully",

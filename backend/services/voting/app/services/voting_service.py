@@ -1,9 +1,10 @@
-from app.services.hash_chain import create_vote_hash
+from app.services.hash_chain import create_vote_hash, verify_vote_chain
 from app.repositories.voting_repo import (
     get_participation,
     create_participation,
     create_vote,
-    get_last_vote_for_update
+    get_last_vote_for_update,
+    get_votes_by_election,
 )
 from app.repositories.voting_token_repo import mark_token_used
 from app.services.voting_token_service import validate_token
@@ -11,26 +12,25 @@ from app.security.anonymization import generate_user_reference
 from datetime import datetime
 
 
-
-from datetime import datetime
-
-
-def cast_vote(db, vote_data):
+# ----------------------------------------
+# 🗳 CAST VOTE (UPDATED WITH JWT USER)
+# ----------------------------------------
+def cast_vote(db, vote_data, user_id):
     try:
         # 🔒 Step 1 — Lock last vote (PREVENT RACE CONDITION)
         last_vote = get_last_vote_for_update(db, vote_data.election_id)
 
         # 🔒 Step 2 — Validate token
-        token = validate_token(db, vote_data.user_id, vote_data.election_id)
+        token = validate_token(db, user_id, vote_data.election_id)
 
         # 🚫 Step 3 — Prevent double voting
-        existing = get_participation(db, vote_data.user_id, vote_data.election_id)
+        existing = get_participation(db, user_id, vote_data.election_id)
         if existing:
             raise Exception("User has already voted")
 
         # 🔐 Step 4 — Anonymize user
         user_reference_hash = generate_user_reference(
-            vote_data.user_id,
+            user_id,
             vote_data.election_id,
         )
 
@@ -66,7 +66,7 @@ def cast_vote(db, vote_data):
         )
 
         # 🧾 Step 7 — Mark participation
-        create_participation(db, vote_data.user_id, vote_data.election_id)
+        create_participation(db, user_id, vote_data.election_id)
 
         # 🎟 Step 8 — Mark token used
         mark_token_used(db, token)
@@ -82,12 +82,9 @@ def cast_vote(db, vote_data):
         raise
 
 
-
-
-from app.repositories.voting_repo import get_votes_by_election
-from app.services.hash_chain import verify_vote_chain
-
-
+# ----------------------------------------
+# 🔍 VERIFY VOTES
+# ----------------------------------------
 def verify_election_votes(db, election_id):
     votes = get_votes_by_election(db, election_id)
 
