@@ -31,6 +31,8 @@ services:
       - redis
     environment:
       DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/voting_db
+    volumes:
+      - ./backend/services/voting:/app   # ✅ FIX
 
 volumes:
   postgres_data:
