@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
 
   postgres:
@@ -9,11 +7,17 @@ services:
     environment:
       POSTGRES_USER: onevote
       POSTGRES_PASSWORD: onevote
-      POSTGRES_DB: voting_db
+      POSTGRES_DB: onevote
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onevote"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
@@ -21,16 +25,18 @@ services:
     ports:
       - "6379:6379"
 
-  voting:
-    build: ./backend/services/voting
-    container_name: voting_service
+  election:
+    build: ./backend/services/election
+    container_name: election_service
     ports:
-      - "8001:8000"
+      - "8003:8000"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/voting_db
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/election_db
 
 volumes:
   postgres_data:
