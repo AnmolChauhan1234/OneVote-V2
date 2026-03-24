@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
 
   postgres:
@@ -29,6 +27,16 @@ services:
     depends_on:
       - postgres
       - redis
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/voting_db
+
+  organisation:
+    build: ./backend/services/organisation
+    container_name: organisation_service
+    ports:
+      - "8002:8000"
+    depends_on:
+      - postgres
     environment:
       DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/voting_db
 
