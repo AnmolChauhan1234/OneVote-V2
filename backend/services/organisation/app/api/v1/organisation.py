@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Form, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -10,10 +10,20 @@ router = APIRouter()
 
 @router.post("/", response_model=OrganisationResponse, status_code=status.HTTP_201_CREATED)
 def create_organisation(
-    org_in: OrganisationCreate,
+    name: str = Form(...),
+    type: str = Form(None),
+    description: str = Form(None),
+    ownerId: str = Form(None),
+    document: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    return organisation_service.create_organisation(db, org_in)
+    org_in = OrganisationCreate(
+        name=name, 
+        type=type, 
+        description=description, 
+        owner_id=ownerId
+    )
+    return organisation_service.create_organisation(db, org_in, document)
 
 @router.get("/", response_model=List[OrganisationResponse])
 def get_organisations(
@@ -37,6 +47,14 @@ def update_organisation(
     db: Session = Depends(get_db)
 ):
     return organisation_service.update_organisation(db, org_id, org_in)
+
+@router.put("/{org_id}/documents", response_model=OrganisationResponse)
+def reupload_document(
+    org_id: int,
+    document: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    return organisation_service.reupload_document(db, org_id, document)
 
 @router.delete("/{org_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_organisation(
