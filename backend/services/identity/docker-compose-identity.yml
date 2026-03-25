@@ -1,0 +1,29 @@
+version: '3.9'
+
+services:
+  identity:
+    build: .
+    container_name: identity_service_dev
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      - identity_postgres
+
+  identity_postgres:
+    image: postgres:15
+    container_name: identity_postgres_local
+    environment:
+      - POSTGRES_USER=identity_user
+      - POSTGRES_PASSWORD=identity_pass
+      - POSTGRES_DB=identity_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - identity_pg_data:/var/lib/postgresql/data
+
+volumes:
+  identity_pg_data:
