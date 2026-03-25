@@ -9,11 +9,11 @@ pwd_context = CryptContext(
     deprecated="auto"
 )
 
-SECRET_KEY = os.getenv("JWT_SECRET", "supersecret")
-ALGORITHM = "HS256"
+# SECRET_KEY = os.getenv("JWT_SECRET", "supersecret")
+# ALGORITHM = "HS256"
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 5
-REFRESH_TOKEN_EXPIRE_MINUTES = 20
+# ACCESS_TOKEN_EXPIRE_MINUTES = 5
+# REFRESH_TOKEN_EXPIRE_MINUTES = 20
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -24,25 +24,32 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_jwt(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = data.copy()
+# def create_jwt(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+#     to_encode = data.copy()
 
-    expire = datetime.now(timezone.utc) + (
-        expires_delta or timedelta(minutes=15)
-    )
+#     expire = datetime.now(timezone.utc) + (
+#         expires_delta or timedelta(minutes=15)
+#     )
 
-    to_encode.update({"exp": expire})
+#     to_encode.update({"exp": expire})
 
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-
-def create_access_token(data: dict) -> str:
-    return create_jwt(data, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+#     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
+# def create_access_token(data: dict) -> str:
+#     return create_jwt(data, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+
+
+# def create_refresh_token(data: dict) -> str:
+#     return create_jwt(data, timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES))
+
+
+# def decode_jwt(token: str) -> dict:
+#     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+from shared.core.jwt import create_access_token, decode_token as decode_jwt
+
+# Mapping shared functions to existing names
 def create_refresh_token(data: dict) -> str:
-    return create_jwt(data, timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES))
-
-
-def decode_jwt(token: str) -> dict:
-    return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    # Using shared create_access_token for refresh tokens as well
+    return create_access_token(data)
