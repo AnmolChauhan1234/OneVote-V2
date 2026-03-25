@@ -2,21 +2,16 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# 🔥 Get DB URL from env
 DATABASE_URL = os.environ["DATABASE_URL"]
 
-# 🔥 Create engine
 engine = create_engine(DATABASE_URL)
 
-# 🔥 Session factory
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
 )
 
-
-# 🔥 FastAPI dependency
 def get_db():
     db = SessionLocal()
     try:

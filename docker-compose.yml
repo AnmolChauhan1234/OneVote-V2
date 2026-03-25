@@ -2,35 +2,113 @@ version: "3.9"
 
 services:
 
+  # ---------------- DATABASE ----------------
   postgres:
-    image: postgres:15
+    image: postgres:15   # ✅ REQUIRED
     container_name: onevote_postgres
     restart: always
     environment:
       POSTGRES_USER: onevote
       POSTGRES_PASSWORD: onevote
-      POSTGRES_DB: voting_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
 
+  # ---------------- CACHE ----------------
   redis:
     image: redis:7
     container_name: onevote_redis
     ports:
       - "6379:6379"
 
+  # ---------------- API GATEWAY ----------------
+  nginx:
+    build: ./infra/nginx
+    container_name: onevote_nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - auth
+      - identity
+      - biometric
+      - organisation
+      - election
+      - voting
+      - notification
+
+  # ---------------- SERVICES ----------------
+
+  auth:
+    build: ./backend/services/auth
+    container_name: auth_service
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/auth_db
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+
+  identity:
+    build: ./backend/services/identity
+    container_name: identity_service
+    ports:
+      - "8002:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/identity_db
+    depends_on:
+      - postgres
+
+  biometric:
+    build: ./backend/services/biometric
+    container_name: biometric_service
+    ports:
+      - "8003:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/biometric_db
+    depends_on:
+      - postgres
+
+  organisation:
+    build: ./backend/services/organisation
+    container_name: organisation_service
+    ports:
+      - "8004:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/org_db
+    depends_on:
+      - postgres
+
+  election:
+    build: ./backend/services/election
+    container_name: election_service
+    ports:
+      - "8005:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/election_db
+    depends_on:
+      - postgres
+
   voting:
     build: ./backend/services/voting
     container_name: voting_service
     ports:
-      - "8001:8000"
+      - "8006:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/voting_db
+      REDIS_URL: redis://redis:6379
     depends_on:
       - postgres
       - redis
-    environment:
-      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/voting_db
+
+  notification:
+    build: ./backend/services/notification
+    container_name: notification_service
+    ports:
+      - "8007:8000"
 
 volumes:
   postgres_data:
