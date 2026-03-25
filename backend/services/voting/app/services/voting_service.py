@@ -9,24 +9,32 @@ from app.repositories.voting_repo import (
 from app.repositories.voting_token_repo import mark_token_used
 from app.services.voting_token_service import validate_token
 from app.security.anonymization import generate_user_reference
+from app.services.biometric_validation import validate_biometric_token  # ✅ NEW
 from datetime import datetime
+from fastapi import HTTPException
 
 
 # ----------------------------------------
-# 🗳 CAST VOTE (UPDATED WITH JWT USER)
+# 🗳 CAST VOTE (FINAL VERSION)
 # ----------------------------------------
 def cast_vote(db, vote_data, user_id):
     try:
+        # 🔐 Step 0 — Biometric validation (FIRST LAYER SECURITY)
+        validate_biometric_token(
+            user_id,
+            vote_data.biometric_token
+        )
+
         # 🔒 Step 1 — Lock last vote (PREVENT RACE CONDITION)
         last_vote = get_last_vote_for_update(db, vote_data.election_id)
 
-        # 🔒 Step 2 — Validate token
+        # 🔒 Step 2 — Validate voting token
         token = validate_token(db, user_id, vote_data.election_id)
 
         # 🚫 Step 3 — Prevent double voting
         existing = get_participation(db, user_id, vote_data.election_id)
         if existing:
-            raise Exception("User has already voted")
+            raise HTTPException(status_code=400, detail="User has already voted")
 
         # 🔐 Step 4 — Anonymize user
         user_reference_hash = generate_user_reference(
@@ -77,9 +85,13 @@ def cast_vote(db, vote_data, user_id):
 
         return new_vote
 
-    except Exception:
+    except HTTPException:
         db.rollback()
         raise
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ----------------------------------------

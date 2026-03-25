@@ -7,3 +7,4 @@ class CastVoteRequest(BaseModel):
     election_id: UUID
     position_id: UUID
     candidate_id: UUID
+    biometric_token: str

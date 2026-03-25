@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
 
+  # ---------------- DATABASE ----------------
   postgres:
     image: postgres:15
     container_name: onevote_postgres
@@ -9,30 +10,148 @@ services:
     environment:
       POSTGRES_USER: onevote
       POSTGRES_PASSWORD: onevote
-      POSTGRES_DB: voting_db
+      POSTGRES_DB: postgres   # ✅ IMPORTANT
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
 
+    # 🔥 Healthcheck (CRITICAL)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onevote"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  # ---------------- CACHE ----------------
   redis:
     image: redis:7
     container_name: onevote_redis
     ports:
       - "6379:6379"
 
+    # 🔥 Healthcheck
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+
+  # ---------------- API GATEWAY ----------------
+  nginx:
+    build: ./infra/nginx
+    container_name: onevote_nginx
+    ports:
+      - "80:80"
+    depends_on:
+      auth:
+        condition: service_started
+      identity:
+        condition: service_started
+      biometric:
+        condition: service_started
+      organisation:
+        condition: service_started
+      election:
+        condition: service_started
+      voting:
+        condition: service_started
+      notification:
+        condition: service_started
+
+
+  # ---------------- SERVICES ----------------
+
+  auth:
+    build: ./backend/services/auth
+    container_name: auth_service
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/auth_db
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+
+  identity:
+    build: ./backend/services/identity
+    container_name: identity_service
+    ports:
+      - "8002:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/identity_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
+  biometric:
+    build: ./backend/services/biometric
+    container_name: biometric_service
+    ports:
+      - "8003:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/biometric_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
+  organisation:
+    build: ./backend/services/organisation
+    container_name: organisation_service
+    ports:
+      - "8004:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/org_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
+  election:
+    build: ./backend/services/election
+    container_name: election_service
+    ports:
+      - "8005:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/election_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
   voting:
     build: ./backend/services/voting
     container_name: voting_service
     ports:
-      - "8001:8000"
-    depends_on:
-      - postgres
-      - redis
+      - "8006:8000"
     environment:
       DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/voting_db
-    volumes:
-      - ./backend/services/voting:/app   # ✅ FIX
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+
+  notification:
+    build: ./backend/services/notification
+    container_name: notification_service
+    ports:
+      - "8007:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 
 volumes:
   postgres_data:

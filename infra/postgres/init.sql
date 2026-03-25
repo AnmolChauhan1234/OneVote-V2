@@ -1,0 +1,6 @@
+CREATE DATABASE auth_db;
+CREATE DATABASE identity_db;
+CREATE DATABASE biometric_db;
+CREATE DATABASE org_db;
+CREATE DATABASE election_db;
+CREATE DATABASE voting_db;
