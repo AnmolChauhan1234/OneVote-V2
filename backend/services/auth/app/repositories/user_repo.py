@@ -1,24 +1,49 @@
-from sqlalchemy.orm import Session as DBSession
+from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.auth import UserCreate
-# from shared.utils.hashing import get_password_hash
+from app.schemas.auth import RegisterRequest
+import uuid
 
-# Mock until shared utils are provided by Senior
-def get_password_hash(password: str) -> str:
-    return "mock_hash"
 
 class UserRepository:
-    def get_user_by_email(self, db: DBSession, email: str) -> User | None:
-        if db is None: return None
-        return db.query(User).filter(User.email == email).first()
+    def __init__(self, db: Session):
+        self.db = db
 
-    def create_user(self, db: DBSession, user: UserCreate) -> User:
-        hashed_password = get_password_hash(user.password)
-        db_user = User(email=user.email, hashed_password=hashed_password)
-        if db is not None:
-            db.add(db_user)
-            db.commit()
-            db.refresh(db_user)
+    def get_by_email(self, email: str) -> User | None:
+        return self.db.query(User).filter(User.email == email).first()
+
+    def get_by_id(self, user_id: uuid.UUID) -> User | None:
+        return self.db.query(User).filter(User.id == user_id).first()
+
+    def get_all(self) -> list[User]:
+        return self.db.query(User).all()
+
+    def create(self, user_data: RegisterRequest, password_hash: str) -> User:
+        db_user = User(
+            email=user_data.email,
+            full_name=user_data.full_name,
+            password_hash=password_hash,
+            user_type=user_data.user_type,
+            is_verified=False,
+            is_suspended=False,
+        )
+        self.db.add(db_user)
+        self.db.commit()
+        self.db.refresh(db_user)
         return db_user
 
-user_repo = UserRepository()
+    def update(self, user: User, update_data: dict) -> User:
+        for field, value in update_data.items():
+            if value is not None:
+                setattr(user, field, value)
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def delete(self, user: User):
+        self.db.delete(user)
+        self.db.commit()
+
+    def mark_verified(self, user: User):
+        user.is_verified = True
+        self.db.commit()
+        self.db.refresh(user)

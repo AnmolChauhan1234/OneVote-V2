@@ -5,7 +5,7 @@ from datetime import datetime
 
 class OTPRepository:
     def create_otp(self, db: DBSession, user_id: UUID, code: str, expires_at: datetime) -> OTP:
-        db_otp = OTP(user_id=user_id, code=code, expires_at=expires_at)
+        db_otp = OTP(user_id=user_id, otp_code=code, expires_at=expires_at)
         if db is not None:
             db.add(db_otp)
             db.commit()
