@@ -1,0 +1,353 @@
+You are a Senior Staff Engineer at a top product-based company (Google, Amazon, Uber).
+
+I will give you a microservices-based project structure. Your task is to generate a COMPLETE High-Level Design (HLD) for this system.
+
+IMPORTANT: Do not give generic answers. Be deeply technical, structured, and practical.
+
+---
+
+### 📌 PROJECT STRUCTURE
+
+onevote-v2/
+│
+├── README.md
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+│
+├── infra/
+│   ├── nginx/
+│   │   └── nginx.conf
+│   ├── redis/
+│   │   └── redis.conf
+│   └── postgres/
+│       ├── init.sql
+│       └── schemas.sql
+│
+├── backend/
+│   ├── shared/                     # Only pure utilities (NO DB models)
+│   │   ├── core/
+│   │   │   ├── config.py
+│   │   │   ├── security.py
+│   │   │   ├── jwt.py
+│   │   │   ├── redis.py
+│   │   │   └── logging.py
+│   │   │
+│   │   └── utils/
+│   │       ├── hashing.py
+│   │       ├── otp.py
+│   │       ├── rate_limiter.py
+│   │       └── time.py
+│   │
+│   ├── services/
+│   │
+│   │   ├── auth/
+│   │   │   ├── app/
+│   │   │   │   ├── main.py
+│   │   │   │   ├── api/v1/auth.py
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── user.py
+│   │   │   │   │   ├── otp.py
+│   │   │   │   │   └── session.py
+│   │   │   │   ├── schemas/auth.py
+│   │   │   │   ├── services/auth_service.py
+│   │   │   │   ├── repositories/user_repo.py
+│   │   │   │   └── db/
+│   │   │   │       ├── base.py
+│   │   │   │       ├── session.py
+│   │   │   │       └── migrations/
+│   │   │   ├── Dockerfile
+│   │   │   └── requirements.txt
+│   │
+│   │   ├── identity/
+│   │   │   ├── app/
+│   │   │   │   ├── main.py
+│   │   │   │   ├── api/v1/identity.py
+│   │   │   │   ├── models/identity.py
+│   │   │   │   ├── schemas/identity.py
+│   │   │   │   ├── services/digilocker.py
+│   │   │   │   ├── repositories/identity_repo.py
+│   │   │   │   └── db/
+│   │   │   │       ├── base.py
+│   │   │   │       ├── session.py
+│   │   │   │       └── migrations/
+│   │   │   ├── Dockerfile
+│   │   │   └── requirements.txt
+│   │
+│   │   ├── biometric/
+│   │   │   ├── app/
+│   │   │   │   ├── main.py
+│   │   │   │   ├── api/v1/biometric.py
+│   │   │   │   ├── models/biometric.py
+│   │   │   │   ├── schemas/biometric.py
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── liveness.py
+│   │   │   │   │   └── anti_spoof.py
+│   │   │   │   ├── repositories/biometric_repo.py
+│   │   │   │   └── db/
+│   │   │   │       ├── base.py
+│   │   │   │       ├── session.py
+│   │   │   │       └── migrations/
+│   │   │   ├── Dockerfile
+│   │   │   └── requirements.txt
+│   │
+│   │   ├── organisation/
+│   │   │   ├── app/
+│   │   │   │   ├── main.py
+│   │   │   │   ├── api/v1/organisation.py
+│   │   │   │   ├── models/organisation.py
+│   │   │   │   ├── schemas/organisation.py
+│   │   │   │   ├── services/organisation_service.py
+│   │   │   │   ├── repositories/organisation_repo.py
+│   │   │   │   └── db/
+│   │   │   │       ├── base.py
+│   │   │   │       ├── session.py
+│   │   │   │       └── migrations/
+│   │   │   ├── Dockerfile
+│   │   │   └── requirements.txt
+│   │
+│   │   ├── election/
+│   │   │   ├── app/
+│   │   │   │   ├── main.py
+│   │   │   │   ├── api/v1/election.py
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── election.py
+│   │   │   │   │   ├── position.py
+│   │   │   │   │   ├── candidate.py
+│   │   │   │   │   └── eligible_voter.py
+│   │   │   │   ├── schemas/election.py
+│   │   │   │   ├── services/election_service.py
+│   │   │   │   ├── repositories/election_repo.py
+│   │   │   │   └── db/
+│   │   │   │       ├── base.py
+│   │   │   │       ├── session.py
+│   │   │   │       └── migrations/
+│   │   │   ├── Dockerfile
+│   │   │   └── requirements.txt
+│   │
+│   │   ├── voting/
+│   │   │   ├── app/
+│   │   │   │   ├── main.py
+│   │   │   │   ├── api/v1/voting.py
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── vote.py
+│   │   │   │   │   ├── token.py
+│   │   │   │   │   └── blockchain_anchor.py
+│   │   │   │   ├── schemas/voting.py
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── voting_service.py
+│   │   │   │   │   └── hash_chain.py
+│   │   │   │   ├── repositories/voting_repo.py
+│   │   │   │   └── db/
+│   │   │   │       ├── base.py
+│   │   │   │       ├── session.py
+│   │   │   │       └── migrations/
+│   │   │   ├── Dockerfile
+│   │   │   └── requirements.txt
+│   │
+│   │   └── notification/
+│   │       ├── app/
+│   │       │   ├── main.py
+│   │       │   ├── api/v1/notify.py
+│   │       │   └── services/
+│   │       │       ├── email.py
+│   │       │       └── sms.py
+│   │       ├── Dockerfile
+│   │       └── requirements.txt
+│
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   ├── hooks/
+│   ├── store/
+│   ├── styles/
+│   ├── public/
+│   ├── next.config.js
+│   ├── tailwind.config.ts
+│   ├── tsconfig.json
+│   └── package.json
+
+
+---
+
+## 🎯 WHAT I WANT IN THE HLD
+
+### 1. 🌍 SYSTEM OVERVIEW
+
+* Explain the purpose of the system (OneVote-V2)
+* Key goals: scalability, security, fault tolerance, auditability
+* Core features: authentication, identity verification, biometric validation, election management, voting, notifications
+
+---
+
+### 2. 🧱 ARCHITECTURE DIAGRAM (TEXTUAL)
+
+* Describe full architecture flow:
+
+  * Client → API Gateway (NGINX) → Microservices
+  * Redis (cache + rate limiting)
+  * PostgreSQL (per service DB)
+* Clearly show:
+
+  * Entry point
+  * Internal communication
+  * Data flow
+
+---
+
+### 3. 🚪 API GATEWAY (NGINX)
+
+* Responsibilities:
+
+  * Routing
+  * Rate limiting
+  * SSL termination
+  * Load balancing
+* How it integrates with services
+* Security layers (WAF, IP throttling)
+
+---
+
+### 4. 🧠 EACH MICROSERVICE (DETAILED)
+
+For EACH service below, explain:
+
+* Responsibility
+* Internal architecture (Controller → Service → Repository → DB)
+* Key APIs
+* Database schema overview
+* Caching strategy (if any)
+* Failure handling
+* Scaling strategy
+
+#### Services:
+
+* Auth Service
+* Identity Service
+* Biometric Service
+* Organisation Service
+* Election Service
+* Voting Service
+* Notification Service
+
+---
+
+### 5. 🔄 INTER-SERVICE COMMUNICATION
+
+Explain in TWO LEVELS:
+
+#### A. High-Level
+
+* How services talk:
+
+  * Sync (REST/gRPC)
+  * Async (message queue if applicable)
+* Example flows:
+
+  * Login → Identity → Biometric → Voting
+
+#### B. Low-Level (DEEP)
+
+* Request flow step-by-step
+* JWT validation across services
+* Service-to-service authentication
+* Data contracts between services
+
+---
+
+### 6. 🗄️ DATABASE DESIGN STRATEGY
+
+* Why separate DB per service vs shared DB
+* Schema isolation
+* Transactions (especially for voting)
+* Consistency vs availability tradeoffs
+
+---
+
+### 7. ⚡ CACHING STRATEGY (REDIS)
+
+* Where Redis is used:
+
+  * OTP storage
+  * Session caching
+  * Rate limiting
+  * Election data caching
+* TTL strategies
+* Cache invalidation
+
+---
+
+### 8. 🔐 SECURITY ARCHITECTURE
+
+* JWT flow
+* Role-based access control (RBAC)
+* Encryption (at rest + in transit)
+* Secure voting guarantees
+* Anti-spoofing (biometric service)
+
+---
+
+### 9. 🧾 VOTING INTEGRITY DESIGN
+
+* How double voting is prevented
+* Token-based voting
+* Hash chaining / blockchain anchoring
+* Audit logs
+
+---
+
+### 10. 📈 SCALABILITY DESIGN
+
+* Horizontal scaling of services
+* Stateless vs stateful services
+* Load balancing
+* DB scaling (read replicas, partitioning)
+
+---
+
+### 11. 🛑 FAILURE & RESILIENCY
+
+* Retry mechanisms
+* Circuit breakers
+* Service failure scenarios
+* Graceful degradation
+
+---
+
+### 12. 📊 OBSERVABILITY
+
+* Logging (centralized logging)
+* Monitoring (Prometheus/Grafana)
+* Tracing (Jaeger/OpenTelemetry)
+
+---
+
+### 13. 🚀 DEPLOYMENT ARCHITECTURE
+
+* Docker Compose → Kubernetes evolution
+* CI/CD pipeline
+* Environment separation
+
+---
+
+### 14. 🔥 REAL-WORLD TRADEOFFS
+
+* What would break at scale?
+* Bottlenecks in this system
+* Improvements for production-grade system
+
+---
+
+## ⚠️ IMPORTANT RULES
+
+* Do NOT give shallow answers
+* Think like a backend architect, not a student
+* Use real-world design decisions
+* Justify every major choice
+* Use structured headings
+* Include real-world patterns (CQRS, Saga if relevant)
+
+---
+
+Now generate the FULL HLD.

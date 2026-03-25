@@ -1,29 +1,23 @@
 import jwt
 from datetime import datetime, timedelta
 from typing import Dict
-from shared.core.config import settings
+
+SECRET_KEY = "supersecret"   # ⚠️ move to env later
+ALGORITHM = "HS256"
 
 
-def create_access_token(data: Dict) -> str:
+def create_access_token(data: Dict, expires_minutes: int = 60) -> str:
     to_encode = data.copy()
 
-    expire = datetime.utcnow() + timedelta(minutes=settings.JWT_EXPIRY_MINUTES)
+    expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
     to_encode.update({"exp": expire})
 
-    return jwt.encode(
-        to_encode,
-        settings.JWT_SECRET,
-        algorithm=settings.JWT_ALGORITHM,
-    )
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def decode_token(token: str) -> Dict:
     try:
-        payload = jwt.decode(
-            token,
-            settings.JWT_SECRET,
-            algorithms=[settings.JWT_ALGORITHM],
-        )
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
 
     except jwt.ExpiredSignatureError:

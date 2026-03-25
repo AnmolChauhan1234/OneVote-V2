@@ -10,11 +10,20 @@ services:
     environment:
       POSTGRES_USER: onevote
       POSTGRES_PASSWORD: onevote
+      POSTGRES_DB: postgres   # ✅ IMPORTANT
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    # 🔥 Healthcheck (CRITICAL)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onevote"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 
   # ---------------- CACHE ----------------
   redis:
@@ -23,6 +32,14 @@ services:
     ports:
       - "6379:6379"
 
+    # 🔥 Healthcheck
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+
   # ---------------- API GATEWAY ----------------
   nginx:
     build: ./infra/nginx
@@ -30,13 +47,21 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - auth
-      - identity
-      - biometric
-      - organisation
-      - election
-      - voting
-      - notification
+      auth:
+        condition: service_started
+      identity:
+        condition: service_started
+      biometric:
+        condition: service_started
+      organisation:
+        condition: service_started
+      election:
+        condition: service_started
+      voting:
+        condition: service_started
+      notification:
+        condition: service_started
+
 
   # ---------------- SERVICES ----------------
 
@@ -49,8 +74,11 @@ services:
       DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/auth_db
       REDIS_URL: redis://redis:6379
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 
   identity:
     build: ./backend/services/identity
@@ -60,7 +88,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/identity_db
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+
 
   biometric:
     build: ./backend/services/biometric
@@ -70,7 +100,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/biometric_db
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+
 
   organisation:
     build: ./backend/services/organisation
@@ -80,7 +112,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/org_db
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+
 
   election:
     build: ./backend/services/election
@@ -90,7 +124,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/election_db
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+
 
   voting:
     build: ./backend/services/voting
@@ -101,14 +137,21 @@ services:
       DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/voting_db
       REDIS_URL: redis://redis:6379
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 
   notification:
     build: ./backend/services/notification
     container_name: notification_service
     ports:
       - "8007:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 
 volumes:
   postgres_data:

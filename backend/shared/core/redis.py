@@ -1,18 +1,21 @@
 import redis
-from shared.core.config import settings
+
+REDIS_HOST = "redis"
+REDIS_PORT = 6379
+REDIS_DB = 0
 
 
 def get_redis():
     return redis.Redis(
-        host=settings.REDIS_HOST,
-        port=settings.REDIS_PORT,
-        db=settings.REDIS_DB,
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        db=REDIS_DB,
         decode_responses=True,
     )
 
 
 # -----------------------------
-# Session Management
+# Session helpers
 # -----------------------------
 
 def set_session(redis_client, session_id: str, user_id: str, ttl: int = 3600):
