@@ -2,7 +2,8 @@ FROM python:3.11
 
 WORKDIR /app
 
-ENV PYTHONUNBUFFERED=1   # 🔥 ADD THIS
+# 🔥 Prevent Python buffering
+ENV PYTHONUNBUFFERED=1
 
 COPY requirements.txt .
 

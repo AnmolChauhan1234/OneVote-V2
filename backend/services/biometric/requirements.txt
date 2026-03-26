@@ -8,3 +8,5 @@ pydantic
 pydantic-settings
 face_recognition
 opencv-python-headless
+python-dotenv
+python-multipart
