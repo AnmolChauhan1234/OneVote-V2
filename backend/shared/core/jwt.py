@@ -1,10 +1,14 @@
-import jwt
 from datetime import datetime, timedelta
-from typing import Dict
+from typing import Dict, Optional
+import jwt
+
 from shared.core.config import settings
 
 
 def create_access_token(data: Dict) -> str:
+    """
+    Create JWT access token
+    """
     to_encode = data.copy()
 
     expire = datetime.utcnow() + timedelta(minutes=settings.JWT_EXPIRY_MINUTES)
@@ -17,7 +21,11 @@ def create_access_token(data: Dict) -> str:
     )
 
 
-def decode_token(token: str) -> Dict:
+def decode_token(token: str) -> Optional[Dict]:
+    """
+    Decode JWT token
+    Returns None if invalid instead of raising (important for dependencies)
+    """
     try:
         payload = jwt.decode(
             token,
@@ -27,7 +35,7 @@ def decode_token(token: str) -> Dict:
         return payload
 
     except jwt.ExpiredSignatureError:
-        raise Exception("Token expired")
+        return None
 
     except jwt.InvalidTokenError:
-        raise Exception("Invalid token")
+        return None
