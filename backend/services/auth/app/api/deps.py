@@ -16,7 +16,9 @@ def get_user_service(db: Session = Depends(get_db)) -> UserService:
     return UserService(repo)
 
 
-def get_session_service(db: Session = Depends(get_db), redis: Redis = Depends(get_redis)) -> SessionService:
+def get_session_service(
+    db: Session = Depends(get_db), redis: Redis = Depends(get_redis)
+) -> SessionService:
     repo = SessionRepository(db)
     return SessionService(repo, redis)
 
@@ -27,9 +29,8 @@ def get_otp_service(redis: Redis = Depends(get_redis)) -> OTPService:
 
 def validate_internal_key(request: Request):
     internal_key = request.headers.get("X-INTERNAL-KEY")
-    secret = os.getenv("INTERNAL_SECRET", "super-secret-internal-key")
+    secret = os.getenv("INTERNAL_API_KEY", "super-secret-internal-key")
     if not internal_key or internal_key != secret:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid internal key"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid internal key"
         )
