@@ -17,6 +17,7 @@ redis_client = redis.Redis(
 # SESSION MANAGEMENT
 # -----------------------------
 
+
 def set_session(session_id: str, user_id: str, ttl: int = 3600):
     key = f"session:{session_id}"
     redis_client.set(key, user_id, ex=ttl)
@@ -35,6 +36,7 @@ def delete_session(session_id: str):
 # -----------------------------
 # TOKEN BLACKLIST (🔥 IMPORTANT)
 # -----------------------------
+
 
 def blacklist_token(token: str, ttl: int = 3600):
     """

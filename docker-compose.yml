@@ -19,7 +19,7 @@ services:
 
     # 🔥 Healthcheck (CRITICAL)
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U onevote"]
+      test: ["CMD-SHELL", "pg_isready -U onevote -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -73,6 +73,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/auth_db
       REDIS_URL: redis://redis:6379
+      API_ENV: development
     depends_on:
       postgres:
         condition: service_healthy
