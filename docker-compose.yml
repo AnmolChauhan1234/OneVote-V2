@@ -151,5 +151,15 @@ services:
         condition: service_healthy
 
 
+  organisation:
+    build: ./backend/services/organisation
+    container_name: organisation_service
+    ports:
+      - "8002:8000"
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql+psycopg2://onevote:onevote@postgres:5432/voting_db
+
 volumes:
   postgres_data:
