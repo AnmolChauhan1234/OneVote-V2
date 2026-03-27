@@ -1,1 +1,7 @@
-from shared.core.redis import redis_client as get_redis
+from shared.core.redis import redis_client
+
+def get_redis():
+    """
+    FastAPI dependency that returns the singleton Redis client.
+    """
+    return redis_client

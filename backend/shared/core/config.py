@@ -9,6 +9,8 @@ class Settings:
     JWT_SECRET: str = os.getenv("JWT_SECRET", "")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_EXPIRY_MINUTES: int = int(os.getenv("JWT_EXPIRY_MINUTES", 60))
+    JWT_ACCESS_EXPIRY_MINUTES: int = int(os.getenv("JWT_ACCESS_EXPIRY_MINUTES", 5))
+    JWT_REFRESH_EXPIRY_MINUTES: int = int(os.getenv("JWT_REFRESH_EXPIRY_MINUTES", 20))
 
     # ---------------- REDIS ----------------
     REDIS_URL: str = os.getenv("REDIS_URL", "")

@@ -6,7 +6,7 @@ from app.schemas.identity import IdentityVerifyRequest, DigiLockerMockResponse
 import uuid
 
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth:8000")
-INTERNAL_SECRET = os.getenv("INTERNAL_SECRET", "supersecret")
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "supersecret")
 
 
 class IdentityService:
@@ -27,7 +27,7 @@ class IdentityService:
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{AUTH_SERVICE_URL}/api/v1/internal/user/{user_id}",
-                headers={"X-Internal-Secret": INTERNAL_SECRET},
+                headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
             )
             if response.status_code != 200:
                 raise HTTPException(
@@ -41,7 +41,7 @@ class IdentityService:
             response = await client.post(
                 f"{AUTH_SERVICE_URL}/api/v1/internal/identity-verified",
                 json={"user_id": str(user_id)},
-                headers={"X-Internal-Secret": INTERNAL_SECRET},
+                headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
             )
             if response.status_code != 200:
                 raise HTTPException(

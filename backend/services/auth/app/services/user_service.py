@@ -3,7 +3,7 @@ from typing import List, Optional
 from app.repositories.user_repo import UserRepository
 from app.models.user import User, UserRole
 from app.schemas.auth import RegisterRequest
-from app.utils.security import get_password_hash
+from shared.core.security import hash_password as get_password_hash
 
 
 class UserService:

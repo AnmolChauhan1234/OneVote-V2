@@ -13,6 +13,9 @@ class RegisterRequest(BaseModel):
         UserType.VOTER, description="User type (voter/org_admin)"
     )
 
+class RegisterResponse(BaseModel):
+    message: str
+    user_id: uuid.UUID
 
 class LoginRequest(BaseModel):
     email: EmailStr

@@ -5,18 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Identity Service")
 
+from app.db.base import Base
+from app.db.session import engine
+Base.metadata.create_all(bind=engine)
+
 API_ENV = os.getenv("API_ENV", "development")
 CLIENT_URL = os.getenv("CLIENT_URL", "http://localhost:3000")
-
-# Setup CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[CLIENT_URL],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 # Root endpoint for health check
 @app.get("/")

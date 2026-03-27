@@ -4,7 +4,9 @@ from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from app.repositories.user_repo import UserRepository
 from app.schemas.auth import RegisterRequest, LoginRequest
-from app.utils.security import get_password_hash, verify_password, create_access_token, create_refresh_token, decode_jwt
+from shared.core.security import hash_password as get_password_hash, verify_password
+from shared.core.jwt import create_access_token, create_refresh_token, decode_token as decode_jwt
+from shared.core.config import settings
 from app.db.redis import get_redis
 
 class AuthService:
@@ -89,7 +91,7 @@ class AuthService:
         access_token = create_access_token({"sub": str(user.id)})
         refresh_token = create_refresh_token({"sub": str(user.id)})
         
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_REFRESH_EXPIRY_MINUTES)
         self.user_repo.create_session(user.id, refresh_token, expires_at)
         
         return {

@@ -5,16 +5,32 @@ import jwt
 from shared.core.config import settings
 
 
-def create_access_token(data: Dict) -> str:
+def create_access_token(data: Dict, expires_delta: Optional[timedelta] = None) -> str:
     """
     Create JWT access token
     """
     to_encode = data.copy()
 
-    expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=settings.JWT_ACCESS_EXPIRY_MINUTES)
+
     to_encode.update({"exp": expire})
 
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(
+        to_encode, 
+        settings.JWT_SECRET, 
+        algorithm=settings.JWT_ALGORITHM
+    )
+
+
+def create_refresh_token(data: Dict) -> str:
+    """
+    Create JWT refresh token using the configured refresh expiry.
+    """
+    expires = timedelta(minutes=settings.JWT_REFRESH_EXPIRY_MINUTES)
+    return create_access_token(data, expires_delta=expires)
 
 
 def decode_token(token: str) -> Optional[Dict]:

@@ -2,7 +2,8 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict
 from app.repositories.session_repo import SessionRepository
-from app.utils.security import create_access_token, create_refresh_token, decode_jwt, REFRESH_TOKEN_EXPIRE_MINUTES
+from shared.core.jwt import create_access_token, create_refresh_token, decode_token as decode_jwt
+from shared.core.config import settings
 from redis import Redis
 
 
@@ -24,7 +25,7 @@ class SessionService:
                 self.repo.delete_all_for_user(user_id)
 
         refresh_token = create_refresh_token({"sub": str(user_id)})
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_REFRESH_EXPIRY_MINUTES)
         
         self.repo.create(user_id, refresh_token, expires_at, device_id)
         
@@ -47,7 +48,7 @@ class SessionService:
         self.repo.delete_by_token(old_refresh_token)
         
         new_refresh_token = create_refresh_token({"sub": str(user_id)})
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_REFRESH_EXPIRY_MINUTES)
         
         self.repo.create(user_id, new_refresh_token, expires_at, session.device_id)
         

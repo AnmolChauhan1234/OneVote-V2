@@ -1,4 +1,4 @@
-from fastapi import Request, HTTPException, Header
+from fastapi import Request, HTTPException, Header, Depends
 from typing import Optional
 
 from shared.core.jwt import decode_token
@@ -78,3 +78,16 @@ def require_admin(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
 
     return current_user
+
+
+# ---------------- INTERNAL SERVICE VALIDATION ----------------
+def validate_internal_key(request: Request):
+    """
+    Validate internal API key for service-to-service communication.
+    """
+    from shared.core.config import settings
+    internal_key = request.headers.get("X-INTERNAL-KEY")
+    if not internal_key or internal_key != settings.INTERNAL_API_KEY:
+        raise HTTPException(
+            status_code=403, detail="Invalid internal key"
+        )

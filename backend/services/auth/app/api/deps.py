@@ -26,11 +26,3 @@ def get_session_service(
 def get_otp_service(redis: Redis = Depends(get_redis)) -> OTPService:
     return OTPService(redis)
 
-
-def validate_internal_key(request: Request):
-    internal_key = request.headers.get("X-INTERNAL-KEY")
-    secret = os.getenv("INTERNAL_API_KEY", "super-secret-internal-key")
-    if not internal_key or internal_key != secret:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid internal key"
-        )
