@@ -2,4 +2,9 @@ fastapi
 uvicorn
 sqlalchemy
 psycopg2-binary
-python-dotenv
+pydantic
+pydantic-settings
+redis
+httpx
+python-multipart
+alembic
