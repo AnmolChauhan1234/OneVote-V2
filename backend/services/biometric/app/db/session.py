@@ -3,6 +3,7 @@ import time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+# 🔥 Get DB URL from env
 DATABASE_URL = os.environ["DATABASE_URL"]
 
 # 🔥 Retry DB connection (VERY IMPORTANT for Docker)
