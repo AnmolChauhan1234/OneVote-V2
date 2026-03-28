@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.schemas.voting import CastVoteRequest
-from app.services.voting_service import cast_vote, verify_election_votes
-from app.db.session import get_db
+from app.api.deps import get_voting_service
+from app.services.voting_service import VotingService
 
-# 🔥 USE SHARED AUTH (NOT LOCAL)
+# 🔥 shared auth
 from shared.core.dependencies import get_current_user
 
 router = APIRouter()
@@ -22,20 +21,22 @@ def health():
 @router.post("/cast-vote")
 def cast_vote_endpoint(
     vote_data: CastVoteRequest,
-    db: Session = Depends(get_db),
+    service: VotingService = Depends(get_voting_service),   # ✅ use service DI
     user=Depends(get_current_user),   # 🔥 JWT + Redis validation
 ):
     try:
-        vote = cast_vote(
-            db=db,
+        vote = service.cast_vote(
             vote_data=vote_data,
-            user_id=user["user_id"],   # 🔥 extracted from token
+            user_id=user["user_id"],   # 🔥 from JWT (correct)
         )
 
         return {
             "message": "Vote cast successfully",
             "vote_id": str(vote.vote_id),
         }
+
+    except HTTPException:
+        raise
 
     except Exception as e:
         raise HTTPException(
@@ -48,14 +49,10 @@ def cast_vote_endpoint(
 @router.get("/verify/{election_id}")
 def verify_votes(
     election_id: UUID,
-    db: Session = Depends(get_db),
+    service: VotingService = Depends(get_voting_service),   # ✅ service DI
 ):
-    """
-    Public or admin endpoint (no auth required unless you want to restrict it)
-    """
     try:
-        result = verify_election_votes(db, election_id)
-        return result
+        return service.verify_election_votes(election_id)
 
     except Exception as e:
         raise HTTPException(

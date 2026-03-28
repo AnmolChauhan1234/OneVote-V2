@@ -1,11 +1,6 @@
-def check_liveness(frames=None):
+def check_liveness() -> bool:
     """
-    Mock implementation for liveness detection.
-    
-    Future implementation will include:
-    - multi-frame validation
-    - movement detection
-    - blink detection
+    Mock liveness check endpoint.
+    TODO: Replace with real liveness detection
     """
-    # For now, ALWAYS return True
     return True

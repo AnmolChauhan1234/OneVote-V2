@@ -1,47 +1,39 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
-from sqlalchemy.orm import Session
-from redis import Redis
-from app.db.session import get_db   # ✅ FIX — import instead of redefining
 from app.schemas.biometric import (
     BiometricEnrollResponse,
     BiometricVerifyResponse,
     LivenessCheckResponse
 )
-from app.services.biometric_service import enroll_user, verify_user
+from app.api.deps import get_biometric_service
+from app.services.biometric_service import BiometricService
 from app.services.liveness import check_liveness
-import redis
-import os
+from shared.core.dependencies import get_current_user
 
 router = APIRouter()
-
-
-# 🔐 Redis dependency (Docker-safe)
-def get_redis():
-    redis_client = redis.Redis.from_url(
-        os.getenv("REDIS_URL", "redis://redis:6379")
-    )
-    yield redis_client
 
 
 @router.post("/enroll", response_model=BiometricEnrollResponse)
 async def enroll_biometric(
     user_id: str = Form(...),
     image: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    service: BiometricService = Depends(get_biometric_service),
+    current_user: dict = Depends(get_current_user),
 ):
     try:
-        image_bytes = await image.read()
+        # 🔒 strict check
+        if str(current_user["user_id"]) != user_id:
+            raise HTTPException(status_code=403, detail="Cannot enroll for another user")
 
-        enroll_user(db, user_id, image_bytes)
+        image_bytes = await image.read()
+        service.enroll_user(user_id, image_bytes)
 
         return BiometricEnrollResponse(
             success=True,
             message="Biometric enrolled"
         )
 
-    except HTTPException as e:
-        raise e
-
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -50,36 +42,37 @@ async def enroll_biometric(
 async def verify_biometric(
     user_id: str = Form(...),
     image: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    redis_client: Redis = Depends(get_redis)
+    service: BiometricService = Depends(get_biometric_service),
+    current_user: dict = Depends(get_current_user),
 ):
     try:
-        image_bytes = await image.read()
+        # 🔒 strict check
+        if str(current_user["user_id"]) != user_id:
+            raise HTTPException(status_code=403, detail="Cannot verify for another user")
 
-        result = verify_user(db, redis_client, user_id, image_bytes)
+        image_bytes = await image.read()
+        result = service.verify_user(user_id, image_bytes)
 
         return BiometricVerifyResponse(
             success=True,
             biometric_token=result["biometric_token"],
-            message="Verification successful"
+            message="Verification successful",
         )
 
-    except HTTPException as e:
-        raise e
-
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/liveness-check", response_model=LivenessCheckResponse)
-async def verify_liveness():
-    """
-    Mock liveness endpoint (always passes for now)
-    """
+async def verify_liveness(
+    current_user: dict = Depends(get_current_user)
+):
     is_live = check_liveness()
 
     return LivenessCheckResponse(
-        success=True,
-        liveness_score=1.0,
-        message="Liveness passed (mock)"
+        success=is_live,
+        liveness_score=1.0 if is_live else 0.0,
+        message="Liveness passed (mock)" if is_live else "Liveness failed",
     )

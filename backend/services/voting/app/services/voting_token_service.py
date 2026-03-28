@@ -1,30 +1,45 @@
 from datetime import datetime
-from app.repositories.voting_token_repo import get_active_token
+from fastapi import HTTPException
 
 
-def validate_token(db, user_id: str, election_id: str):
-    token = get_active_token(db, user_id, election_id)
+class VotingTokenService:
+    def __init__(self, repo):
+        self.repo = repo
 
-    if not token:
-        raise Exception("Invalid or already used token")
+    # ----------------------------------------
+    # 🔐 VALIDATE TOKEN
+    # ----------------------------------------
+    def validate_token(self, user_id: str, election_id: str):
+        token = self.repo.get_active_token(user_id, election_id)
 
-    if token.expires_at < datetime.utcnow():
-        raise Exception("Token expired")
+        if not token:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid or already used token"
+            )
 
-    return token
+        if token.expires_at < datetime.utcnow():
+            raise HTTPException(
+                status_code=400,
+                detail="Token expired"
+            )
 
+        return token
 
+    # ----------------------------------------
+    # 🎟 GENERATE TOKEN
+    # ----------------------------------------
+    def generate_token(self, user_id: str, election_id: str):
+        # Prevent multiple active tokens
+        existing = self.repo.get_active_token(user_id, election_id)
 
+        if existing:
+            return existing
 
+        return self.repo.create_token(user_id, election_id)
 
-from app.repositories.voting_token_repo import create_token, get_active_token
-
-
-def generate_token(db, user_id, election_id):
-    # Prevent multiple active tokens
-    existing = get_active_token(db, user_id, election_id)
-
-    if existing:
-        return existing
-
-    return create_token(db, user_id, election_id)
+    # ----------------------------------------
+    # 🎟 MARK TOKEN USED
+    # ----------------------------------------
+    def mark_token_used(self, token):
+        return self.repo.mark_token_used(token)

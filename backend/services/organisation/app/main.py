@@ -12,7 +12,7 @@ app = FastAPI(title="Organisation Service", version="1.0.0")
 
 app.include_router(organisation_router, prefix="/api/v1/organizations", tags=["organizations"])
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
-app.include_router(internal_router, prefix="/internal", tags=["internal"])
+app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])
 
 @app.get("/health")
 def health_check():

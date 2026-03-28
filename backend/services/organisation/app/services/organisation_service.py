@@ -1,95 +1,150 @@
-from sqlalchemy.orm import Session
 from fastapi import HTTPException, status, UploadFile
-from app.schemas.organisation import OrganisationCreate, OrganisationUpdate, OrganisationStatus
-from app.repositories.organisation_repo import organisation_repo
 import uuid
 
+from app.repositories.organisation_repo import OrganisationRepository
+from app.schemas.organisation import OrganisationCreate, OrganisationUpdate, OrganisationStatus
+
+
 def mock_upload_to_cloudflare(file: UploadFile) -> str:
-    # Placeholder for actual Cloudflare R2 upload logic
-    # We generate a fake URL for now
     unique_filename = f"{uuid.uuid4()}_{file.filename}"
     return f"https://cdn.cloudflare.example.com/uploads/{unique_filename}"
 
+
 class OrganisationService:
-    def get_organisation(self, db: Session, org_id: int):
-        org = organisation_repo.get_by_id(db, org_id)
+    def __init__(self, repo: OrganisationRepository):
+        self.repo = repo
+
+    # ---------------- ORG ----------------
+
+    def get_organisation(self, org_id: int):
+        org = self.repo.get_by_id(org_id)
         if not org:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organisation not found")
+            raise HTTPException(status_code=404, detail="Organisation not found")
         return org
 
-    def list_organisations(self, db: Session, skip: int = 0, limit: int = 100):
-        return organisation_repo.get_all(db, skip=skip, limit=limit)
+    def list_organisations(self, skip: int = 0, limit: int = 100):
+        return self.repo.get_all(skip, limit)
 
-    def create_organisation(self, db: Session, org_in: OrganisationCreate, file: UploadFile):
-        # 1. Create org
-        org = organisation_repo.create(db, org_in)
-        # 2. Upload file
-        file_url = mock_upload_to_cloudflare(file)
-        # 3. Save document
-        organisation_repo.add_document(db, org.id, file_url)
-        return org
+    def create_organisation(self, org_in: OrganisationCreate, file: UploadFile):
+        try:
+            org = self.repo.create(org_in)
 
-    def update_organisation(self, db: Session, org_id: int, org_in: OrganisationUpdate):
-        org = self.get_organisation(db, org_id)
-        return organisation_repo.update(db, org, org_in)
+            file_url = mock_upload_to_cloudflare(file)
+            self.repo.add_document(org.id, file_url)
 
-    def delete_organisation(self, db: Session, org_id: int):
-        org = self.get_organisation(db, org_id)
-        organisation_repo.delete(db, org)
+            self.repo.commit()
+            self.repo.refresh(org)
 
-    # Verification Lifecycle Methods
-    def get_documents(self, db: Session, org_id: int):
-        self.get_organisation(db, org_id) # Ensure it exists
-        return organisation_repo.get_documents(db, org_id)
+            return org
 
-    def get_pending_organisations(self, db: Session):
-        return organisation_repo.get_by_status(db, OrganisationStatus.PENDING_VERIFICATION)
+        except Exception:
+            self.repo.rollback()
+            raise
 
-    def approve_organisation(self, db: Session, org_id: int, admin_id: str, remarks: str = None):
-        org = self.get_organisation(db, org_id)
-        if org.status == OrganisationStatus.VERIFIED:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Already verified")
-        
-        return organisation_repo.update_verification_status(
-            db=db, 
-            org_id=org_id, 
-            status=OrganisationStatus.VERIFIED, 
-            admin_id=admin_id, 
-            action="APPROVED", 
-            remarks=remarks
-        )
+    def update_organisation(self, org_id: int, org_in: OrganisationUpdate):
+        try:
+            org = self.get_organisation(org_id)
 
-    def reject_organisation(self, db: Session, org_id: int, admin_id: str, reason: str):
-        org = self.get_organisation(db, org_id)
-        return organisation_repo.update_verification_status(
-            db=db, 
-            org_id=org_id, 
-            status=OrganisationStatus.REJECTED, 
-            admin_id=admin_id, 
-            action="REJECTED", 
-            remarks=reason
-        )
+            org = self.repo.update(org, org_in)
 
-    def reupload_document(self, db: Session, org_id: int, file: UploadFile):
-        org = self.get_organisation(db, org_id)
-        
-        # Upload new file
-        file_url = mock_upload_to_cloudflare(file)
-        organisation_repo.add_document(db, org.id, file_url)
-        
-        # Reset status to PENDING_VERIFICATION
-        org.status = OrganisationStatus.PENDING_VERIFICATION
-        db.commit()
-        db.refresh(org)
-        
-        return org
+            self.repo.commit()
+            self.repo.refresh(org)
 
-    def check_eligibility(self, db: Session, org_id: int):
-        org = self.get_organisation(db, org_id)
+            return org
+
+        except Exception:
+            self.repo.rollback()
+            raise
+
+    def delete_organisation(self, org_id: int):
+        try:
+            org = self.get_organisation(org_id)
+
+            self.repo.delete(org)
+
+            self.repo.commit()
+
+        except Exception:
+            self.repo.rollback()
+            raise
+
+    # ---------------- VERIFICATION ----------------
+
+    def get_documents(self, org_id: int):
+        self.get_organisation(org_id)
+        return self.repo.get_documents(org_id)
+
+    def get_pending_organisations(self):
+        return self.repo.get_by_status(OrganisationStatus.PENDING_VERIFICATION)
+
+    def approve_organisation(self, org_id: int, admin_id: str, remarks: str = None):
+        try:
+            org = self.get_organisation(org_id)
+
+            if org.status == OrganisationStatus.VERIFIED:
+                raise HTTPException(status_code=400, detail="Already verified")
+
+            org = self.repo.update_verification_status(
+                org=org,
+                status=OrganisationStatus.VERIFIED,
+                admin_id=admin_id,
+                action="APPROVED",
+                remarks=remarks,
+            )
+
+            self.repo.commit()
+            self.repo.refresh(org)
+
+            return org
+
+        except Exception:
+            self.repo.rollback()
+            raise
+
+    def reject_organisation(self, org_id: int, admin_id: str, reason: str):
+        try:
+            org = self.get_organisation(org_id)
+
+            org = self.repo.update_verification_status(
+                org=org,
+                status=OrganisationStatus.REJECTED,
+                admin_id=admin_id,
+                action="REJECTED",
+                remarks=reason,
+            )
+
+            self.repo.commit()
+            self.repo.refresh(org)
+
+            return org
+
+        except Exception:
+            self.repo.rollback()
+            raise
+
+    def reupload_document(self, org_id: int, file: UploadFile):
+        try:
+            org = self.get_organisation(org_id)
+
+            file_url = mock_upload_to_cloudflare(file)
+            self.repo.add_document(org.id, file_url)
+
+            org.status = OrganisationStatus.PENDING_VERIFICATION
+
+            self.repo.commit()
+            self.repo.refresh(org)
+
+            return org
+
+        except Exception:
+            self.repo.rollback()
+            raise
+
+    def check_eligibility(self, org_id: int):
+        org = self.get_organisation(org_id)
+
         return {
             "orgId": org.id,
             "isVerified": org.status == OrganisationStatus.VERIFIED,
-            "eligibleForElection": org.status == OrganisationStatus.VERIFIED
+            "eligibleForElection": org.status == OrganisationStatus.VERIFIED,
         }
-
-organisation_service = OrganisationService()

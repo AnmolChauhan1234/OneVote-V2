@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from app.db.base import Base
 from app.db.session import engine
 from app.api.v1.election import router as election_router
+from app.api.v1.internal import router as internal_router
 import app.models  # ensure models are loaded for metadata
 
 @asynccontextmanager
@@ -21,6 +22,7 @@ app = FastAPI(
 )
 
 app.include_router(election_router, prefix="/api/v1")
+app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])
 
 @app.get("/health", tags=["Health"])
 def health_check():

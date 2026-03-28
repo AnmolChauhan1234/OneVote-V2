@@ -1,34 +1,60 @@
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends
 from typing import List
 
-from app.db.session import get_db
-from app.schemas.organisation import OrganisationListPendingResponse, OrganisationDocumentResponse, ApproveOrganisationRequest, RejectOrganisationRequest, OrganisationResponse
-from app.services.organisation_service import organisation_service
+from app.api.deps import get_organisation_service
+from app.services.organisation_service import OrganisationService
+from app.schemas.organisation import (
+    OrganisationListPendingResponse,
+    OrganisationDocumentResponse,
+    ApproveOrganisationRequest,
+    RejectOrganisationRequest,
+)
 
 router = APIRouter()
 
+
 @router.get("/organizations/{org_id}/documents", response_model=List[OrganisationDocumentResponse])
-def get_organisation_documents(org_id: int, db: Session = Depends(get_db)):
-    return organisation_service.get_documents(db, org_id)
+def get_organisation_documents(
+    org_id: int,
+    service: OrganisationService = Depends(get_organisation_service),
+):
+    return service.get_documents(org_id)
+
 
 @router.get("/organizations", response_model=List[OrganisationListPendingResponse])
-def list_pending_organisations(status: str = "PENDING_VERIFICATION", db: Session = Depends(get_db)):
-    return organisation_service.get_pending_organisations(db)
+def list_pending_organisations(
+    status: str = "PENDING_VERIFICATION",
+    service: OrganisationService = Depends(get_organisation_service),
+):
+    return service.get_pending_organisations()
+
 
 @router.post("/organizations/{org_id}/approve")
-def approve_organisation(org_id: int, req: ApproveOrganisationRequest, db: Session = Depends(get_db)):
+def approve_organisation(
+    org_id: int,
+    req: ApproveOrganisationRequest,
+    service: OrganisationService = Depends(get_organisation_service),
+):
     admin_id = "admin_001"
-    org = organisation_service.approve_organisation(db, org_id, admin_id, req.remarks)
+
+    org = service.approve_organisation(org_id, admin_id, req.remarks)
+
     return {
         "status": org.status,
-        "verifiedAt": org.verified_at
+        "verifiedAt": org.verified_at,
     }
 
+
 @router.post("/organizations/{org_id}/reject")
-def reject_organisation(org_id: int, req: RejectOrganisationRequest, db: Session = Depends(get_db)):
+def reject_organisation(
+    org_id: int,
+    req: RejectOrganisationRequest,
+    service: OrganisationService = Depends(get_organisation_service),
+):
     admin_id = "admin_001"
-    org = organisation_service.reject_organisation(db, org_id, admin_id, req.reason)
+
+    org = service.reject_organisation(org_id, admin_id, req.reason)
+
     return {
-        "status": org.status
+        "status": org.status,
     }

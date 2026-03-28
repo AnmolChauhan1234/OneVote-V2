@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.v1 import biometric
+from app.api.v1 import biometric, internal
 from app.db.base import Base
 from app.db.session import engine
 
@@ -14,6 +14,7 @@ app = FastAPI(
 )
 
 app.include_router(biometric.router, prefix="/biometric", tags=["biometric"])
+app.include_router(internal.router, prefix="/api/v1/internal", tags=["internal"])
 
 @app.get("/health")
 def health_check():
