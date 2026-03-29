@@ -72,10 +72,21 @@ def validate_csrf(request: Request):
 # ---------------- OPTIONAL: ADMIN CHECK ----------------
 def require_admin(current_user: dict = Depends(get_current_user)):
     """
-    Role-based access control (future use)
+    Role-based access control for standard admins and super admins.
     """
-    if current_user.get("role") != "admin":
+    if current_user.get("role") not in ["admin", "super_admin"]:
         raise HTTPException(status_code=403, detail="Admin access required")
+
+    return current_user
+
+
+# ---------------- SUPER ADMIN CHECK ----------------
+def require_super_admin(current_user: dict = Depends(get_current_user)):
+    """
+    Strict role-based access control exclusively for super admins.
+    """
+    if current_user.get("role") != "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin access required")
 
     return current_user
 

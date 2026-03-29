@@ -13,6 +13,11 @@ class RegisterRequest(BaseModel):
         UserType.VOTER, description="User type (voter/org_admin)"
     )
 
+class AdminCreate(BaseModel):
+    email: EmailStr = Field(..., description="Administrator's email address")
+    password: str = Field(..., min_length=6, description="Administrator's password")
+    full_name: str = Field(..., description="Administrator's full name")
+
 class RegisterResponse(BaseModel):
     message: str
     user_id: uuid.UUID

@@ -6,12 +6,36 @@ from app.api.v1 import auth_router, admin_router, internal_router
 # Database initialization handled by Alembic migrations
 
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Bootstrap Super Admin from Env
+    super_email = os.getenv("SUPERADMIN_EMAIL")
+    super_password = os.getenv("SUPERADMIN_PASSWORD")
+    if super_email and super_password:
+        from app.db.session import SessionLocal
+        from app.repositories.user_repo import UserRepository
+        from app.services.user_service import UserService
+        db = SessionLocal()
+        try:
+            repo = UserRepository(db)
+            service = UserService(repo)
+            service.create_super_admin(super_email, super_password)
+            print(f"✅ Super Admin bootstrapped successfully: {super_email}")
+        except Exception as e:
+            print(f"⚠️ Failed to bootstrap super admin: {e}")
+        finally:
+            db.close()
+    yield
+
 # ---------------- APP INIT ----------------
 app = FastAPI(
     title="Auth Service",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 
