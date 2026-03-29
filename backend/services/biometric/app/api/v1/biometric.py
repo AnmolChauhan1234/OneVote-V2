@@ -7,25 +7,27 @@ from app.schemas.biometric import (
 from app.api.deps import get_biometric_service
 from app.services.biometric_service import BiometricService
 from app.services.liveness import check_liveness
-from shared.core.dependencies import get_current_user
+
+# 🔥 REMOVE JWT dependency
+# from shared.core.dependencies import get_current_user
 
 router = APIRouter()
 
 
+# ----------------------------------------
+# 👤 ENROLL (NO JWT)
+# ----------------------------------------
 @router.post("/enroll", response_model=BiometricEnrollResponse)
 async def enroll_biometric(
     user_id: str = Form(...),
     image: UploadFile = File(...),
     service: BiometricService = Depends(get_biometric_service),
-    current_user: dict = Depends(get_current_user),
 ):
     try:
-        # 🔒 strict check
-        if str(current_user["user_id"]) != user_id:
-            raise HTTPException(status_code=403, detail="Cannot enroll for another user")
-
         image_bytes = await image.read()
-        service.enroll_user(user_id, image_bytes)
+
+        # 🔥 async call (important)
+        await service.enroll_user(user_id, image_bytes)
 
         return BiometricEnrollResponse(
             success=True,
@@ -38,6 +40,11 @@ async def enroll_biometric(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ----------------------------------------
+# 🔐 VERIFY (KEEP JWT → used in voting)
+# ----------------------------------------
+from shared.core.dependencies import get_current_user
+
 @router.post("/verify", response_model=BiometricVerifyResponse)
 async def verify_biometric(
     user_id: str = Form(...),
@@ -46,7 +53,7 @@ async def verify_biometric(
     current_user: dict = Depends(get_current_user),
 ):
     try:
-        # 🔒 strict check
+        # 🔒 still required (voting security)
         if str(current_user["user_id"]) != user_id:
             raise HTTPException(status_code=403, detail="Cannot verify for another user")
 
@@ -64,6 +71,10 @@ async def verify_biometric(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ----------------------------------------
+# 🧠 LIVENESS (KEEP JWT → used in voting)
+# ----------------------------------------
 
 @router.post("/liveness-check", response_model=LivenessCheckResponse)
 async def verify_liveness(
