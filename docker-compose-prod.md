@@ -1,16 +1,15 @@
-# 🚀 Production Docker Compose (OneVote)
+# Production Docker Compose (OneVote)
 
 ## Key Differences from Development
 
-- ❌ No volumes for services (immutable containers)
-- ❌ No local code mounting
-- ✅ Images contain full code
-- ✅ CI/CD handles migrations
-- ✅ EntryPoint only runs `alembic upgrade head`
+- No volumes mapping for external source code (immutable containers).
+- Built images contain the full application code.
+- Continuous Integration/Continuous Deployment (CI/CD) pipelines handle database migrations.
+- The entrypoint strictly executes `alembic upgrade head` prior to service initiation.
 
 ---
 
-## docker-compose (production)
+## Production Configuration (docker-compose.prod.yml)
 
 ```yaml
 services:
@@ -91,36 +90,35 @@ volumes:
 
 ---
 
-## Production Workflow
+## Production Deployment Workflow
 
-1. Developer generates migration locally:
-
+1. **Local Migration Generation:** 
+   The developer generates the migration script within the local development environment:
+   ```bash
+   alembic revision --autogenerate -m "description of changes"
    ```
-   alembic revision --autogenerate
-   ```
 
-2. Commit migration:
-
-   ```
+2. **Version Control:**
+   The generated migration script is committed to the main repository track:
+   ```bash
    git add .
-   git commit
+   git commit -m "chore: add db migration for new features"
    ```
 
-3. CI/CD runs:
-
-   ```
+3. **Pipeline Execution (CI/CD):**
+   The deployment pipeline is responsible for running the upgrade prior to container spin-up:
+   ```bash
    alembic upgrade head
    ```
 
-4. Deploy containers
+4. **Container Orchestration:**
+   The updated Docker containers are deployed to the host environment.
 
 ---
 
-## Important Rule
+## Important Migration Rules
 
-Containers in production:
+When operating within the production environment, the following strict protocols must be observed:
 
-- DO NOT generate migrations
-- ONLY apply migrations
-
----
+- **Do not** generate new migration scripts (`--autogenerate`) against production databases.
+- **Only** apply vetted migrations (`upgrade head`) that have successfully passed the CI/CD pipeline.

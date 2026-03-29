@@ -229,7 +229,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AUTH_DB}
     volumes:
-      - ./backend/services/auth:/app      # 🔥 IMPORTANT
+      - ./backend/services/auth:/app      
       - ./backend/shared:/app/shared
     depends_on:
       postgres:
