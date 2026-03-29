@@ -9,8 +9,7 @@ import app.models  # ensure models are loaded for metadata
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize database tables
-    Base.metadata.create_all(bind=engine)
+    # Database initialization handled by Alembic migrations
     yield
     # Cleanup (if any)
 

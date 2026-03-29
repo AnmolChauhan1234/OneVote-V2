@@ -2,11 +2,7 @@ from fastapi import FastAPI
 from app.api.v1.organisation import router as organisation_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.internal import router as internal_router
-from app.db.base import Base
-from app.db.session import engine
-
-# Create the database tables
-Base.metadata.create_all(bind=engine)
+# Database initialization handled by Alembic migrations
 
 app = FastAPI(title="Organisation Service", version="1.0.0")
 

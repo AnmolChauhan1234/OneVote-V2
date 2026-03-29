@@ -3,11 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import auth_router, admin_router, internal_router
-from app.db.base import Base
-from app.db.session import engine
-
-# Create tables
-Base.metadata.create_all(bind=engine)
+# Database initialization handled by Alembic migrations
 
 
 # ---------------- APP INIT ----------------

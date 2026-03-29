@@ -1,11 +1,6 @@
 from fastapi import FastAPI
 from app.api.v1 import biometric, internal
-from app.db.base import Base
-from app.db.session import engine
-
-# Create database tables if they don't exist
-# In a real environment, you'd use Alembic migrations instead
-Base.metadata.create_all(bind=engine)
+# Database initialization handled by Alembic migrations
 
 app = FastAPI(
     title="OneVote-V2 Biometric Service",

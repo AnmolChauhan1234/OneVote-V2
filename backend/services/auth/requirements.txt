@@ -6,3 +6,4 @@ python-dotenv
 PyJWT
 redis
 email-validator
+alembic

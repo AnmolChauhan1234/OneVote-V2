@@ -5,7 +5,9 @@ from sqlalchemy import create_engine, pool
 from alembic import context
 
 from app.db.base import Base
-import app.models  # 🔥 IMPORTANT: ensures all models are loaded
+from app.models.user import User
+from app.models.session import Session
+from app.models.otp import OTP
 
 # Alembic Config object
 config = context.config
@@ -14,8 +16,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Metadata for autogenerate
 target_metadata = Base.metadata
+
+config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
 
 
 # -------------------------

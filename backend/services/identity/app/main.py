@@ -5,9 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Identity Service")
 
-from app.db.base import Base
-from app.db.session import engine
-Base.metadata.create_all(bind=engine)
+# Database initialization handled by Alembic migrations
 
 API_ENV = os.getenv("API_ENV", "development")
 CLIENT_URL = os.getenv("CLIENT_URL", "http://localhost:3000")

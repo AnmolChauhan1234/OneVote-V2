@@ -1,8 +1,8 @@
-"""init voting tables
+"""init
 
-Revision ID: de8d43665f0a
+Revision ID: 954d7a60988e
 Revises: 
-Create Date: 2026-03-21 08:08:59.428754
+Create Date: 2026-03-29 09:01:08.837945
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'de8d43665f0a'
+revision: str = '954d7a60988e'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -72,42 +72,6 @@ def upgrade() -> None:
     op.create_index(op.f('ix_voting_tokens_election_id'), 'voting_tokens', ['election_id'], unique=False)
     op.create_index(op.f('ix_voting_tokens_user_id'), 'voting_tokens', ['user_id'], unique=False)
     # ### end Alembic commands ###
-
-
-
-
-
-
-    
-
-    
-
-    # 🔒 IMMUTABILITY FUNCTION
-    op.execute("""
-    CREATE OR REPLACE FUNCTION prevent_vote_modification()
-    RETURNS trigger AS $$
-    BEGIN
-        RAISE EXCEPTION 'Votes are immutable';
-    END;
-    $$ LANGUAGE plpgsql;
-    """)
-
-    # 🔒 TRIGGER
-    op.execute("""
-    CREATE TRIGGER no_vote_update
-    BEFORE UPDATE OR DELETE ON votes
-    FOR EACH ROW
-    EXECUTE FUNCTION prevent_vote_modification();
-    """)
-
-    # 🔐 PARTIAL INDEX
-    op.execute("""
-    CREATE UNIQUE INDEX unique_active_token_partial
-    ON voting_tokens (user_id, election_id)
-    WHERE is_used = false;
-    """)
-
-
 
 
 def downgrade() -> None:

@@ -1,6 +1,184 @@
+# services:
+
+#   # ---------------- DATABASE ----------------
+#   postgres:
+#     image: postgres:15
+#     container_name: onevote_postgres
+#     restart: always
+#     env_file:
+#       - .env
+#     environment:
+#       POSTGRES_USER: ${POSTGRES_USER}
+#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#       POSTGRES_DB: ${POSTGRES_DB}
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+#       interval: 5s
+#       timeout: 5s
+#       retries: 5
+
+
+#   # ---------------- CACHE ----------------
+#   redis:
+#     image: redis:7
+#     container_name: onevote_redis
+#     ports:
+#       - "6379:6379"
+#     healthcheck:
+#       test: ["CMD", "redis-cli", "ping"]
+#       interval: 5s
+#       timeout: 3s
+#       retries: 5
+
+
+#   # ---------------- API GATEWAY ----------------
+#   nginx:
+#     build: ./infra/nginx
+#     container_name: onevote_nginx
+#     env_file:
+#       - .env
+#     ports:
+#       - "80:80"
+#     depends_on:
+#       - auth
+#       - identity
+#       - biometric
+#       - organisation
+#       - election
+#       - voting
+#       - notification
+
+
+#   # ---------------- SERVICES ----------------
+
+#   auth:
+#     build: ./backend/services/auth
+#     container_name: auth_service
+#     ports:
+#       - "8001:8000"
+#     env_file:
+#       - .env
+#     environment:
+#       API_ENV: development   # 🔥 service-specific
+#       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${AUTH_DB}
+#       REDIS_URL: ${REDIS_URL}
+#     volumes:
+#       - ./backend/shared:/app/shared
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#       redis:
+#         condition: service_healthy
+
+
+#   identity:
+#     build: ./backend/services/identity
+#     container_name: identity_service
+#     ports:
+#       - "8002:8000"
+#     env_file:
+#       - .env
+#     environment:
+#       API_ENV: development
+#       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${IDENTITY_DB}
+#     volumes:
+#       - ./backend/shared:/app/shared
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+
+
+#   biometric:
+#     build: ./backend/services/biometric
+#     container_name: biometric_service
+#     ports:
+#       - "8003:8000"
+#     env_file:
+#       - .env
+#     environment:
+#       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${BIOMETRIC_DB}
+#     volumes:
+#       - ./backend/shared:/app/shared
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+
+
+#   organisation:
+#     build: ./backend/services/organisation
+#     container_name: organisation_service
+#     ports:
+#       - "8004:8000"
+#     env_file:
+#       - .env
+#     environment:
+#       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${ORG_DB}
+#     volumes:
+#       - ./backend/shared:/app/shared
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+
+
+#   election:
+#     build: ./backend/services/election
+#     container_name: election_service
+#     ports:
+#       - "8005:8000"
+#     env_file:
+#       - .env
+#     environment:
+#       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${ELECTION_DB}
+#     volumes:
+#       - ./backend/shared:/app/shared
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+
+
+#   voting:
+#     build: ./backend/services/voting
+#     container_name: voting_service
+#     ports:
+#       - "8006:8000"
+#     env_file:
+#       - .env
+#     environment:
+#       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${VOTING_DB}
+#       REDIS_URL: ${REDIS_URL}
+#     volumes:
+#       - ./backend/shared:/app/shared
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#       redis:
+#         condition: service_healthy
+
+
+#   notification:
+#     build: ./backend/services/notification
+#     container_name: notification_service
+#     ports:
+#       - "8007:8000"
+#     env_file:
+#       - .env
+#     volumes:
+#       - ./backend/shared:/app/shared
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+
+
+# volumes:
+#   postgres_data:
+
 services:
 
-  # ---------------- DATABASE ----------------
   postgres:
     image: postgres:15
     container_name: onevote_postgres
@@ -22,26 +200,15 @@ services:
       timeout: 5s
       retries: 5
 
-
-  # ---------------- CACHE ----------------
   redis:
     image: redis:7
     container_name: onevote_redis
     ports:
       - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
 
-
-  # ---------------- API GATEWAY ----------------
   nginx:
     build: ./infra/nginx
     container_name: onevote_nginx
-    env_file:
-      - .env
     ports:
       - "80:80"
     depends_on:
@@ -53,126 +220,108 @@ services:
       - voting
       - notification
 
-
-  # ---------------- SERVICES ----------------
-
   auth:
     build: ./backend/services/auth
-    container_name: auth_service
     ports:
       - "8001:8000"
     env_file:
       - .env
     environment:
-      API_ENV: development   # 🔥 service-specific
-      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${AUTH_DB}
-      REDIS_URL: ${REDIS_URL}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AUTH_DB}
     volumes:
+      - ./backend/services/auth:/app      # 🔥 IMPORTANT
       - ./backend/shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-
 
   identity:
     build: ./backend/services/identity
-    container_name: identity_service
     ports:
       - "8002:8000"
     env_file:
       - .env
     environment:
-      API_ENV: development
-      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${IDENTITY_DB}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${IDENTITY_DB}
     volumes:
+      - ./backend/services/identity:/app
       - ./backend/shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
 
-
   biometric:
     build: ./backend/services/biometric
-    container_name: biometric_service
     ports:
       - "8003:8000"
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${BIOMETRIC_DB}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${BIOMETRIC_DB}
     volumes:
+      - ./backend/services/biometric:/app
       - ./backend/shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
 
-
   organisation:
     build: ./backend/services/organisation
-    container_name: organisation_service
     ports:
       - "8004:8000"
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${ORG_DB}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${ORG_DB}
     volumes:
+      - ./backend/services/organisation:/app
       - ./backend/shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
 
-
   election:
     build: ./backend/services/election
-    container_name: election_service
     ports:
       - "8005:8000"
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${ELECTION_DB}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${ELECTION_DB}
     volumes:
+      - ./backend/services/election:/app
       - ./backend/shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
 
-
   voting:
     build: ./backend/services/voting
-    container_name: voting_service
     ports:
       - "8006:8000"
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${VOTING_DB}
-      REDIS_URL: ${REDIS_URL}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${VOTING_DB}
     volumes:
+      - ./backend/services/voting:/app
       - ./backend/shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-
 
   notification:
     build: ./backend/services/notification
-    container_name: notification_service
     ports:
       - "8007:8000"
     env_file:
       - .env
     volumes:
+      - ./backend/services/notification:/app
       - ./backend/shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
-
 
 volumes:
   postgres_data:
