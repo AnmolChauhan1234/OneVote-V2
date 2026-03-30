@@ -5,7 +5,7 @@ from sqlalchemy.sql import func
 from app.db.base import Base
 
 class BiometricProfile(Base):
-    __tablename__ = "biometric_profiles"
+    __tablename__ = "biometric_profile"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), index=True, nullable=False, unique=True)

@@ -54,7 +54,7 @@ async def verify_biometric(
 ):
     try:
         # 🔒 still required (voting security)
-        if str(current_user["user_id"]) != user_id:
+        if str(current_user.get("sub")) != user_id:
             raise HTTPException(status_code=403, detail="Cannot verify for another user")
 
         image_bytes = await image.read()

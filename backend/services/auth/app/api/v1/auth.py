@@ -176,7 +176,7 @@ def logout(
     if access_token:
         redis_client.set(f"blacklist:{access_token}", "1", ex=3600)
 
-    session_service.logout(current_user["user_id"], access_token)
+    session_service.logout(current_user.get("sub"), access_token)
 
     # 🔥 Clear cookies
     response.delete_cookie("access_token", secure=SECURE_COOKIE, samesite="lax")
@@ -192,7 +192,7 @@ def get_me(
     current_user=Depends(get_current_user),
     user_service: UserService = Depends(get_user_service),
 ):
-    user = user_service.get_user_by_id(current_user["user_id"])
+    user = user_service.get_user_by_id(current_user.get("sub"))
     return user
 
 

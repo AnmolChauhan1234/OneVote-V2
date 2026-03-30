@@ -50,7 +50,7 @@ def get_current_user_id(
     """
     Shortcut dependency if you only need user_id
     """
-    return current_user.get("user_id")
+    return current_user.get("sub")
 
 
 # ---------------- CSRF VALIDATION ----------------
@@ -101,4 +101,4 @@ def validate_internal_key(request: Request):
     if not internal_key or internal_key != settings.INTERNAL_API_KEY:
         raise HTTPException(
             status_code=403, detail="Invalid internal key"
-        )
+        )

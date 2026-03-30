@@ -4,7 +4,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from app.db.base import Base
 
 class BiometricSession(Base):
-    __tablename__ = "biometric_sessions"
+    __tablename__ = "biometric_session"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), index=True, nullable=False)
