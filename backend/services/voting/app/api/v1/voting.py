@@ -25,9 +25,10 @@ def cast_vote_endpoint(
     user=Depends(get_current_user),   # 🔥 JWT + Redis validation
 ):
     try:
+        user_id = user.get("user_id") or user.get("sub")
         vote = service.cast_vote(
             vote_data=vote_data,
-            user_id=user["user_id"],   # 🔥 from JWT (correct)
+            user_id=user_id,   # 🔥 from JWT (correct)
         )
 
         return {

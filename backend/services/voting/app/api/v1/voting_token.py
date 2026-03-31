@@ -18,7 +18,8 @@ def generate_token_endpoint(
 ):
     try:
         # 🔥 SECURITY CHECK
-        if str(request.user_id) != str(user["user_id"]):
+        user_id = user.get("user_id") or user.get("sub")
+        if str(request.user_id) != str(user_id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can only generate token for yourself",
