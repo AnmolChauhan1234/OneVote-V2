@@ -88,3 +88,20 @@ class BulkVoterUploadResponse(BaseModel):
     skipped: int
     errors: List[str] = []
     voters: List[EligibleVoterResponse] = []
+
+class CandidateResultResponse(BaseModel):
+    candidate_id: str
+    name: str
+    vote_count: int
+    is_winner: bool = False
+
+class PositionResultResponse(BaseModel):
+    position_id: str
+    name: str
+    candidates: List[CandidateResultResponse]
+
+class ElectionResultResponse(BaseModel):
+    election_id: str
+    title: str
+    status: ElectionStatus
+    positions: List[PositionResultResponse]

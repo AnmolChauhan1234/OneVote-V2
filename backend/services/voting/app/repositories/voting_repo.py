@@ -108,3 +108,19 @@ class VotingRepository:
 
     def refresh(self, obj):
         self.db.refresh(obj)
+
+    # ----------------------------------------
+    # 📊 Aggregated Results
+    # ----------------------------------------
+    def get_vote_counts_by_election(self, election_id: str):
+        from sqlalchemy import func
+        return (
+            self.db.query(
+                Vote.position_id,
+                Vote.candidate_id,
+                func.count(Vote.vote_id).label("vote_count")
+            )
+            .filter(Vote.election_id == str(election_id))
+            .group_by(Vote.position_id, Vote.candidate_id)
+            .all()
+        )

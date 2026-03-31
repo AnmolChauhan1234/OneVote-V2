@@ -116,3 +116,17 @@ class VotingService:
             "message": message,
             "total_votes": len(votes),
         }
+
+    # ----------------------------------------
+    # 📊 RESULTS
+    # ----------------------------------------
+    def get_election_results_data(self, election_id: str):
+        counts = self.repo.get_vote_counts_by_election(election_id)
+        return [
+            {
+                "position_id": str(count.position_id),
+                "candidate_id": str(count.candidate_id),
+                "vote_count": count.vote_count
+            }
+            for count in counts
+        ]

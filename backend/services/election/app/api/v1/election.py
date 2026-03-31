@@ -7,11 +7,11 @@ from app.schemas.election import (
     ElectionCreate, ElectionUpdate, ElectionResponse,
     PositionCreate, PositionResponse,
     CandidateCreate, CandidateResponse,
-    EligibleVoterResponse, BulkVoterUploadResponse
+    EligibleVoterResponse, BulkVoterUploadResponse,
+    ElectionResultResponse
 )
 
-# 🔥 optional: add auth later if needed
-# from shared.core.dependencies import get_current_user
+from shared.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/elections", tags=["Elections"])
 
@@ -52,6 +52,15 @@ def update_election(
     service: ElectionService = Depends(get_election_service),
 ):
     return service.update_election(election_id, data)
+
+
+@router.get("/{election_id}/results", response_model=ElectionResultResponse)
+async def get_results(
+    election_id: str,
+    service: ElectionService = Depends(get_election_service),
+    current_user=Depends(get_current_user)
+):
+    return await service.get_election_results(election_id)
 
 
 # ----------------------------------------

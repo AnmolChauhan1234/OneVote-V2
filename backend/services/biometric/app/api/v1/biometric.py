@@ -47,15 +47,12 @@ from shared.core.dependencies import get_current_user
 
 @router.post("/verify", response_model=BiometricVerifyResponse)
 async def verify_biometric(
-    user_id: str = Form(...),
     image: UploadFile = File(...),
     service: BiometricService = Depends(get_biometric_service),
     current_user: dict = Depends(get_current_user),
 ):
     try:
-        # 🔒 still required (voting security)
-        if str(current_user.get("sub")) != user_id:
-            raise HTTPException(status_code=403, detail="Cannot verify for another user")
+        user_id = str(current_user.get("user_id") or current_user.get("sub"))
 
         image_bytes = await image.read()
         result = service.verify_user(user_id, image_bytes)

@@ -62,6 +62,86 @@ class ElectionService:
             self.repo.rollback()
             raise
 
+    async def get_election_results(self, election_id: str) -> dict:
+        import json
+        import os
+        import httpx
+        from shared.core.redis import redis_client
+        from app.models.election import ElectionStatus
+
+        cache_key = f"results:{election_id}"
+        cached = redis_client.get(cache_key)
+        if cached:
+            return json.loads(cached)
+
+        election = self.get_election(election_id)
+        if election.status != ElectionStatus.COMPLETED:
+            raise HTTPException(
+                status_code=400,
+                detail="Results are only available after the election is completed"
+            )
+
+        positions = self.get_positions(election_id)
+        candidates = []
+        for pos in positions:
+            candidates.extend(self.get_candidates(pos.id))
+
+        voting_url = os.getenv("VOTING_SERVICE_URL", "http://voting:8000")
+        internal_key = os.getenv("INTERNAL_API_KEY", "supersecret")
+
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    f"{voting_url}/api/v1/internal/elections/{election_id}/results",
+                    headers={"X-INTERNAL-KEY": internal_key},
+                    timeout=5.0
+                )
+                if resp.status_code != 200:
+                    raise HTTPException(status_code=503, detail="Voting service unavailable")
+                vote_data = resp.json()
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Failed to communicate with Voting service")
+
+        vote_map = {(item["position_id"], item["candidate_id"]): item["vote_count"] for item in vote_data}
+
+        result_positions = []
+        for p in positions:
+            pos_cands = [c for c in candidates if c.position_id == p.id]
+            cand_results = []
+            max_votes = -1
+
+            for c in pos_cands:
+                vc = vote_map.get((p.id, c.id), 0)
+                cand_results.append({
+                    "candidate_id": c.id,
+                    "name": c.name,
+                    "vote_count": vc,
+                    "is_winner": False
+                })
+                if vc > max_votes:
+                    max_votes = vc
+
+            if max_votes > 0:
+                for cr in cand_results:
+                    if cr["vote_count"] == max_votes:
+                        cr["is_winner"] = True
+
+            result_positions.append({
+                "position_id": p.id,
+                "name": p.name,
+                "candidates": cand_results
+            })
+
+        final_result = {
+            "election_id": election.id,
+            "title": election.title,
+            "status": election.status,
+            "positions": result_positions
+        }
+
+        redis_client.setex(cache_key, 86400 * 30, json.dumps(final_result))  # 30 days
+        return final_result
+
     # ---------------- POSITION ----------------
 
     def create_position(self, election_id: str, data: PositionCreate) -> PositionResponse:
