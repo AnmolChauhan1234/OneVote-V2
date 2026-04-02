@@ -7,8 +7,9 @@ app = FastAPI(title="Identity Service")
 
 # Database initialization handled by Alembic migrations
 
-API_ENV = os.getenv("API_ENV", "development")
+GLOBAL_ENV = os.getenv("GLOBAL_ENV", "development")
 CLIENT_URL = os.getenv("CLIENT_URL", "http://localhost:3000")
+
 
 # Root endpoint for health check
 @app.get("/")

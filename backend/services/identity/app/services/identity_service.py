@@ -5,8 +5,10 @@ from app.repositories.identity_repo import IdentityRepository
 from app.schemas.identity import IdentityVerifyRequest, DigiLockerMockResponse
 import uuid
 
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth:8001")
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth:8000")
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "internal-secret")
+
+print("service identity , debug auth serive url", AUTH_SERVICE_URL)
 
 
 class IdentityService:
@@ -24,11 +26,13 @@ class IdentityService:
         }
 
     async def _get_auth_user_data(self, user_id: uuid.UUID) -> dict:
+        print("get auth user_data caliing....")
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{AUTH_SERVICE_URL}/api/v1/internal/user/{user_id}",
                 headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
             )
+            print("debug response after calling", response.json())
             if response.status_code != 200:
                 detail = "User not found in Auth service"
                 try:
@@ -47,6 +51,7 @@ class IdentityService:
             return response.json()
 
     async def _update_auth_identity_status(self, user_id: uuid.UUID):
+        print("debug update auth identity status")
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{AUTH_SERVICE_URL}/api/v1/internal/identity-verified",
@@ -72,13 +77,16 @@ class IdentityService:
     async def verify_identity(self, request: IdentityVerifyRequest):
         # 1. Check if already verified in this service
         existing = self.repo.get_by_user_id(request.user_id)
+        print("debug verify start.....")
         if existing and existing.is_verified:
             return existing
 
         # 2. Fetch data from Auth service
+        print("debug, authsuer")
         auth_user = await self._get_auth_user_data(request.user_id)
 
         # 3. Fetch data from DigiLocker (Mock)
+        print("debug digilocker call")
         digi_data = await self._mock_digilocker_fetch(request.aadhar_id)
 
         # 4. Verify data (Simple name match for now as requested)
