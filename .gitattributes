@@ -1,0 +1,15 @@
+# .gitattributes
+* text=auto
+
+# Force LF for all shell scripts (fixes your entrypoint.sh problem)
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Windows-specific scripts can keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files (don't convert these)
+*.png binary
+*.jpg binary
+*.pdf binary
