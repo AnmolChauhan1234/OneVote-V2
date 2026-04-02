@@ -2,10 +2,16 @@ import os
 import secrets
 from fastapi import APIRouter, Depends, Response, Request, status, HTTPException, Header
 
-from app.api.deps import get_user_service, get_session_service, get_otp_service
+from app.api.deps import (
+    get_user_service,
+    get_session_service,
+    get_otp_service,
+    get_user_org_identifier_service,
+)
 from app.services.user_service import UserService
 from app.services.session_service import SessionService
 from app.services.otp_service import OTPService
+from app.services.user_org_identifier_service import UserOrgIdentifierService
 
 from app.schemas.auth import (
     RegisterRequest,
@@ -15,6 +21,10 @@ from app.schemas.auth import (
     GenerateOTPRequest,
     UserResponse,
     MessageResponse,
+)
+from app.schemas.user_org_identifier import (
+    UserOrgIdentifierCreate,
+    UserOrgIdentifierResponse,
 )
 
 from app.models.user import User
@@ -27,8 +37,8 @@ from shared.core.config import settings
 
 router = APIRouter()
 
-API_ENV = os.getenv("API_ENV", "development")
-SECURE_COOKIE = API_ENV == "production"
+GLOBAL_ENV = os.getenv("GLOBAL_ENV", "development")
+SECURE_COOKIE = GLOBAL_ENV == "production"
 
 
 ACCESS_TOKEN_AGE = settings.JWT_ACCESS_EXPIRY_MINUTES * 60  # in seconds
@@ -226,3 +236,17 @@ def verify_otp(
         return {"message": "OTP verified successfully"}
 
     raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+
+
+# ---------------- ORG IDENTIFIERS ----------------
+@router.post("/me/org-identifiers", response_model=UserOrgIdentifierResponse)
+def add_user_org_identifier(
+    data: UserOrgIdentifierCreate,
+    current_user=Depends(get_current_user),
+    service: UserOrgIdentifierService = Depends(get_user_org_identifier_service),
+):
+    return service.add_identifier(
+        user_id=current_user.get("sub"),
+        org_id=data.org_id,
+        identifier_value=data.identifier_value,
+    )

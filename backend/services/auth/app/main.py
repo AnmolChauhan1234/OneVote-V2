@@ -51,7 +51,13 @@ CLIENT_URL = os.getenv("CLIENT_URL", "http://localhost:3000")
 # ---------------- HEALTH CHECK ----------------
 @app.get("/health", tags=["health"])
 def health_check():
+    print("DEBUG: Health check hit!")
     return {"status": "ok", "service": "auth"}
+
+@app.get("/debug")
+def debug_route():
+    print("DEBUG: Root level debug route hit!")
+    return {"message": "Debug route ok"}
 
 
 # ---------------- ROUTES ----------------

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, status
+from fastapi import APIRouter, Depends, UploadFile, File, Form, status
 from typing import List
 
 from app.api.deps import get_election_service
@@ -117,9 +117,10 @@ def get_candidates(
 async def add_eligible_voters(
     election_id: str,
     file: UploadFile = File(...),
+    identifier_column: str = Form(...),
     service: ElectionService = Depends(get_election_service),
 ):
-    return await service.bulk_add_eligible_voters_from_csv(election_id, file)
+    return await service.bulk_add_eligible_voters_from_csv(election_id, file, identifier_column)
 
 
 @router.get("/{election_id}/voters", response_model=List[EligibleVoterResponse])

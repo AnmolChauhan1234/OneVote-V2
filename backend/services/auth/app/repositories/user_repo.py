@@ -12,7 +12,9 @@ class UserRepository:
         return self.db.query(User).filter(User.email == email).first()
 
     def get_by_id(self, user_id: uuid.UUID) -> User | None:
-        return self.db.query(User).filter(User.id == user_id).first()
+        result = self.db.query(User).filter(User.id == user_id).first()
+        print(f"DEBUG REPO: Query for ID {user_id} returned {result}")
+        return result
 
     def get_all(self) -> list[User]:
         return self.db.query(User).all()

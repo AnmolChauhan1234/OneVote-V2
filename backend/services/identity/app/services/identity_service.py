@@ -5,8 +5,8 @@ from app.repositories.identity_repo import IdentityRepository
 from app.schemas.identity import IdentityVerifyRequest, DigiLockerMockResponse
 import uuid
 
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth:8000")
-INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "supersecret")
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth:8001")
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "internal-secret")
 
 
 class IdentityService:
@@ -30,9 +30,19 @@ class IdentityService:
                 headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
             )
             if response.status_code != 200:
+                detail = "User not found in Auth service"
+                try:
+                    error_data = response.json()
+                    if "detail" in error_data:
+                        detail = f"Auth Service Error ({response.status_code}): {error_data['detail']}"
+                except Exception:
+                    detail = f"Auth Service Error ({response.status_code})"
+
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found in Auth service",
+                    status_code=(
+                        response.status_code if response.status_code < 500 else 500
+                    ),
+                    detail=detail,
                 )
             return response.json()
 
@@ -44,9 +54,19 @@ class IdentityService:
                 headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
             )
             if response.status_code != 200:
+                detail = "Failed to update identity status in Auth service"
+                try:
+                    error_data = response.json()
+                    if "detail" in error_data:
+                        detail = f"Auth Service Update Error ({response.status_code}): {error_data['detail']}"
+                except Exception:
+                    detail = f"Auth Service Update Error ({response.status_code})"
+
                 raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to update identity status in Auth service",
+                    status_code=(
+                        response.status_code if response.status_code < 500 else 500
+                    ),
+                    detail=detail,
                 )
 
     async def verify_identity(self, request: IdentityVerifyRequest):

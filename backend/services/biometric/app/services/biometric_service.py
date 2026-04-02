@@ -11,8 +11,8 @@ from app.repositories.biometric_repo import BiometricRepository
 from app.services.liveness import check_liveness
 
 
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth:8000")
-INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "supersecret")
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth:8001")
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "internal-secret")
 
 
 class BiometricService:
@@ -30,6 +30,7 @@ class BiometricService:
         np_img = np.frombuffer(image_bytes, np.uint8)
 
         import cv2
+
         img = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
 
         if img is None:
@@ -58,9 +59,19 @@ class BiometricService:
             )
 
             if response.status_code != 200:
+                detail = "Failed to update biometric status in Auth service"
+                try:
+                    error_data = response.json()
+                    if "detail" in error_data:
+                        detail = f"Auth Service Biometric Error ({response.status_code}): {error_data['detail']}"
+                except Exception:
+                    detail = f"Auth Service Biometric Error ({response.status_code})"
+
                 raise HTTPException(
-                    status_code=500,
-                    detail="Failed to update biometric status in Auth service",
+                    status_code=(
+                        response.status_code if response.status_code < 500 else 500
+                    ),
+                    detail=detail,
                 )
 
     # ----------------------------------------
@@ -109,11 +120,15 @@ class BiometricService:
 
             profile = self.repo.get_profile_by_user_id(user_uuid)
             if not profile:
-                raise HTTPException(status_code=404, detail="Biometric profile not found")
+                raise HTTPException(
+                    status_code=404, detail="Biometric profile not found"
+                )
 
             stored_encoding = np.array(profile.face_encoding)
 
-            distance = face_recognition.face_distance([stored_encoding], new_encoding)[0]
+            distance = face_recognition.face_distance([stored_encoding], new_encoding)[
+                0
+            ]
 
             if distance > 0.6:
                 raise HTTPException(status_code=401, detail="Face mismatch")
@@ -128,11 +143,7 @@ class BiometricService:
 
             expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
 
-            self.repo.create_session(
-                user_uuid,
-                biometric_token,
-                expires_at
-            )
+            self.repo.create_session(user_uuid, biometric_token, expires_at)
 
             self.repo.commit()
 
@@ -154,7 +165,9 @@ class BiometricService:
         stored_user_id = self.redis.get(redis_key)
 
         if not stored_user_id:
-            raise HTTPException(status_code=401, detail="Invalid or expired biometric token")
+            raise HTTPException(
+                status_code=401, detail="Invalid or expired biometric token"
+            )
 
         if stored_user_id != str(user_id):
             raise HTTPException(status_code=403, detail="Token does not belong to user")

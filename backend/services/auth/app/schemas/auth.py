@@ -9,18 +9,22 @@ class RegisterRequest(BaseModel):
     email: EmailStr = Field(..., description="User's email address")
     password: str = Field(..., min_length=6, description="User's password")
     full_name: str = Field(..., description="User's full name")
+    phone_number: str = Field(..., description="User's phone number")
     user_type: UserType = Field(
         UserType.VOTER, description="User type (voter/org_admin)"
     )
+
 
 class AdminCreate(BaseModel):
     email: EmailStr = Field(..., description="Administrator's email address")
     password: str = Field(..., min_length=6, description="Administrator's password")
     full_name: str = Field(..., description="Administrator's full name")
 
+
 class RegisterResponse(BaseModel):
     message: str
     user_id: uuid.UUID
+
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -46,6 +50,7 @@ class UserResponse(BaseModel):
     full_name: str
     role: UserRole
     user_type: UserType
+    phone_number: str
     created_at: datetime
     # updated_at: datetime
 
@@ -56,6 +61,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     role: Optional[UserRole] = None
     user_type: Optional[UserType] = None
+    phone_number: Optional[str] = None
     is_blocked: Optional[bool] = None
     is_suspended: Optional[bool] = None
 

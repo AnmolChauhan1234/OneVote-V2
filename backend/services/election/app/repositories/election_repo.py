@@ -70,7 +70,7 @@ class ElectionRepository:
             voter = EligibleVoter(
                 election_id=election_id,
                 voter_id=data.voter_id,
-                roll_no=data.roll_no
+                unique_identifier=data.unique_identifier
             )
             self.db.add(voter)
             voters.append(voter)

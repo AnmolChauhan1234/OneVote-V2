@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 import pytz
+import uuid
 
 from app.models.organisation import Organisation, OrganisationDocument, VerificationLog, OrganisationStatus
 from app.schemas.organisation import OrganisationCreate, OrganisationUpdate
@@ -13,7 +14,7 @@ class OrganisationRepository:
 
     # ---------------- ORG ----------------
 
-    def get_by_id(self, org_id: int) -> Optional[Organisation]:
+    def get_by_id(self, org_id: uuid.UUID) -> Optional[Organisation]:
         return self.db.query(Organisation).filter(Organisation.id == org_id).first()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> List[Organisation]:
@@ -45,13 +46,13 @@ class OrganisationRepository:
 
     # ---------------- DOCUMENT ----------------
 
-    def add_document(self, org_id: int, file_url: str) -> OrganisationDocument:
+    def add_document(self, org_id: uuid.UUID, file_url: str) -> OrganisationDocument:
         doc = OrganisationDocument(org_id=org_id, file_url=file_url)
         self.db.add(doc)
         self.db.flush()
         return doc
 
-    def get_documents(self, org_id: int) -> List[OrganisationDocument]:
+    def get_documents(self, org_id: uuid.UUID) -> List[OrganisationDocument]:
         return self.db.query(OrganisationDocument).filter(
             OrganisationDocument.org_id == org_id
         ).all()

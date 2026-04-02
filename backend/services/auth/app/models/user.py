@@ -26,6 +26,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
 
+    phone_number = Column(String, nullable=True)
+
     is_verified = Column(Boolean, default=False)
     is_blocked = Column(Boolean, default=False)
     is_suspended = Column(Boolean, default=False)

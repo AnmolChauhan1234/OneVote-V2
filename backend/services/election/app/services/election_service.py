@@ -185,9 +185,15 @@ class ElectionService:
 
     # ---------------- VOTERS ----------------
 
-    async def bulk_add_eligible_voters_from_csv(self, election_id: str, file: UploadFile) -> BulkVoterUploadResponse:
+    async def bulk_add_eligible_voters_from_csv(
+        self, election_id: str, file: UploadFile, identifier_column: str
+    ) -> BulkVoterUploadResponse:
+        import os
+        import httpx
         try:
-            self.get_election(election_id)
+            election = self.repo.get_election(election_id)
+            if not election:
+                raise HTTPException(status_code=404, detail="Election not found")
 
             if not file.filename.endswith('.csv'):
                 raise HTTPException(status_code=400, detail="Only CSV files are accepted")
@@ -196,42 +202,63 @@ class ElectionService:
             decoded = content.decode('utf-8')
             reader = csv.DictReader(io.StringIO(decoded))
 
-            if not reader.fieldnames or 'roll_no' not in reader.fieldnames or 'phone' not in reader.fieldnames:
-                raise HTTPException(status_code=400, detail="CSV must contain 'roll_no' and 'phone' columns")
+            if not reader.fieldnames or identifier_column not in reader.fieldnames:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"CSV must contain the '{identifier_column}' column"
+                )
 
-            errors = []
+            identifiers = []
+            rows = []
+            for row in reader:
+                val = row.get(identifier_column, '').strip()
+                if val:
+                    identifiers.append(val)
+                    rows.append(val)
+
+            if not identifiers:
+                return BulkVoterUploadResponse(
+                    total_processed=0, added=0, skipped=0, errors=["No identifiers found"]
+                )
+
+            # Call Auth Service for verification
+            auth_url = os.getenv("AUTH_SERVICE_URL", "http://auth:8000")
+            internal_key = os.getenv("INTERNAL_API_KEY", "supersecret")
+
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{auth_url}/api/v1/internal/auth/verify-org-identifiers",
+                    json={"org_id": str(election.org_id), "identifiers": list(set(identifiers))},
+                    headers={"X-INTERNAL-KEY": internal_key},
+                    timeout=10.0
+                )
+                if resp.status_code != 200:
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"Auth service verification failed: {resp.text}"
+                    )
+                auth_data = resp.json()
+
+            # Map results
+            found_map = {item["identifier"]: item["user_id"] for item in auth_data["found"]}
+            
             to_add = []
-            skipped = 0
-            total = 0
-
-            for row_num, row in enumerate(reader, start=2):
-                total += 1
-                roll_no = row.get('roll_no', '').strip()
-                phone = row.get('phone', '').strip()
-
-                if not roll_no:
-                    errors.append(f"Row {row_num}: missing roll_no")
-                    continue
-                if not phone:
-                    errors.append(f"Row {row_num}: missing phone for roll_no '{roll_no}'")
-                    continue
-
-                existing = self.repo.get_eligible_voter_by_voter_id(election_id, phone)
-                if existing:
-                    skipped += 1
-                    continue
-
-                to_add.append(EligibleVoterCreate(voter_id=phone, roll_no=roll_no))
+            for identifier in rows:
+                user_id = found_map.get(identifier)
+                to_add.append(EligibleVoterCreate(
+                    voter_id=str(user_id) if user_id else None,
+                    unique_identifier=identifier
+                ))
 
             added_voters = self.repo.bulk_add_eligible_voters(election_id, to_add)
 
             self.repo.commit()
 
             return BulkVoterUploadResponse(
-                total_processed=total,
+                total_processed=len(rows),
                 added=len(added_voters),
-                skipped=skipped,
-                errors=errors,
+                skipped=0,
+                errors=[],
                 voters=[EligibleVoterResponse.model_validate(v) for v in added_voters]
             )
 

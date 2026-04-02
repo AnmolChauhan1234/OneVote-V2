@@ -37,11 +37,17 @@ def biometric_verified(
 def get_user_internal(
     user_id: uuid.UUID, user_service: UserService = Depends(get_user_service)
 ):
+    print(f"DEBUG AUTH INTERNAL: Looking for user_id={user_id} (type={type(user_id)})")
     user = user_service.get_user_by_id(user_id)
-
-    print("in internal auth: ", user)
+    print(f"DEBUG AUTH INTERNAL: Found user={user}")
 
     if not user:
+        # Diagnostic: List a few users to see what's in the DB
+        all_users = user_service.get_all_users()
+        print(f"DEBUG AUTH INTERNAL: Total users in DB: {len(all_users)}")
+        if all_users:
+            print(f"DEBUG AUTH INTERNAL: First user ID in DB: {all_users[0].id} (type={type(all_users[0].id)})")
+        
         raise HTTPException(status_code=404, detail="User not found")
 
     return user

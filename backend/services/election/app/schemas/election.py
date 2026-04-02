@@ -3,7 +3,10 @@ from typing import Optional, List, Any
 from datetime import datetime
 from app.models.election import ElectionStatus
 
+import uuid
+
 class ElectionBase(BaseModel):
+    org_id: uuid.UUID
     title: str = Field(..., max_length=255)
     description: Optional[str] = None
     start_date: datetime
@@ -69,14 +72,14 @@ class CandidateResponse(CandidateBase):
         from_attributes = True
 
 class EligibleVoterCreate(BaseModel):
-    voter_id: str
-    roll_no: Optional[str] = None
+    voter_id: Optional[str] = None
+    unique_identifier: str
 
 class EligibleVoterResponse(BaseModel):
     id: str
     election_id: str
-    voter_id: str
-    roll_no: Optional[str] = None
+    voter_id: Optional[str] = None
+    unique_identifier: str
     created_at: datetime
 
     class Config:

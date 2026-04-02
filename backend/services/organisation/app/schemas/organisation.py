@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 import enum
+import uuid
 
 class OrganisationStatus(str, enum.Enum):
     PENDING_VERIFICATION = "PENDING_VERIFICATION"
@@ -22,14 +23,14 @@ class OrganisationUpdate(OrganisationBase):
 
 class OrganisationDocumentResponse(BaseModel):
     id: int
-    org_id: int
+    org_id: uuid.UUID
     file_url: str
     uploaded_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
 class OrganisationResponse(OrganisationBase):
-    id: int
+    id: uuid.UUID
     status: OrganisationStatus
     created_at: datetime
     verified_at: Optional[datetime] = None
@@ -41,7 +42,7 @@ class OrganisationResponse(OrganisationBase):
     model_config = ConfigDict(from_attributes=True)
 
 class OrganisationListPendingResponse(BaseModel):
-    id: int
+    id: uuid.UUID
     name: str
     submittedAt: datetime
 
@@ -54,6 +55,6 @@ class RejectOrganisationRequest(BaseModel):
     reason: str
 
 class OrganisationEligibilityResponse(BaseModel):
-    orgId: int
+    orgId: uuid.UUID
     isVerified: bool
     eligibleForElection: bool

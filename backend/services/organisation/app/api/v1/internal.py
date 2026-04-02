@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+import uuid
 
 from app.api.deps import get_organisation_service
 from app.services.organisation_service import OrganisationService
@@ -15,7 +16,7 @@ def internal_health_check():
 
 @router.get("/organizations/{org_id}/eligibility", response_model=OrganisationEligibilityResponse)
 def get_organisation_eligibility(
-    org_id: int,
+    org_id: uuid.UUID,
     service: OrganisationService = Depends(get_organisation_service),
 ):
     return service.check_eligibility(org_id)

@@ -16,7 +16,7 @@ class OrganisationService:
 
     # ---------------- ORG ----------------
 
-    def get_organisation(self, org_id: int):
+    def get_organisation(self, org_id: uuid.UUID):
         org = self.repo.get_by_id(org_id)
         if not org:
             raise HTTPException(status_code=404, detail="Organisation not found")
@@ -41,7 +41,7 @@ class OrganisationService:
             self.repo.rollback()
             raise
 
-    def update_organisation(self, org_id: int, org_in: OrganisationUpdate):
+    def update_organisation(self, org_id: uuid.UUID, org_in: OrganisationUpdate):
         try:
             org = self.get_organisation(org_id)
 
@@ -56,7 +56,7 @@ class OrganisationService:
             self.repo.rollback()
             raise
 
-    def delete_organisation(self, org_id: int):
+    def delete_organisation(self, org_id: uuid.UUID):
         try:
             org = self.get_organisation(org_id)
 
@@ -70,14 +70,14 @@ class OrganisationService:
 
     # ---------------- VERIFICATION ----------------
 
-    def get_documents(self, org_id: int):
+    def get_documents(self, org_id: uuid.UUID):
         self.get_organisation(org_id)
         return self.repo.get_documents(org_id)
 
     def get_pending_organisations(self):
         return self.repo.get_by_status(OrganisationStatus.PENDING_VERIFICATION)
 
-    def approve_organisation(self, org_id: int, admin_id: str, remarks: str = None):
+    def approve_organisation(self, org_id: uuid.UUID, admin_id: str, remarks: str = None):
         try:
             org = self.get_organisation(org_id)
 
@@ -101,7 +101,7 @@ class OrganisationService:
             self.repo.rollback()
             raise
 
-    def reject_organisation(self, org_id: int, admin_id: str, reason: str):
+    def reject_organisation(self, org_id: uuid.UUID, admin_id: str, reason: str):
         try:
             org = self.get_organisation(org_id)
 
@@ -122,7 +122,7 @@ class OrganisationService:
             self.repo.rollback()
             raise
 
-    def reupload_document(self, org_id: int, file: UploadFile):
+    def reupload_document(self, org_id: uuid.UUID, file: UploadFile):
         try:
             org = self.get_organisation(org_id)
 
@@ -140,7 +140,7 @@ class OrganisationService:
             self.repo.rollback()
             raise
 
-    def check_eligibility(self, org_id: int):
+    def check_eligibility(self, org_id: uuid.UUID):
         org = self.get_organisation(org_id)
 
         return {

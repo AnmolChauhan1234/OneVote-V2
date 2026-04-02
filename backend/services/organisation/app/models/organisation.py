@@ -1,5 +1,7 @@
 import enum
+import uuid
 from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -12,7 +14,7 @@ class OrganisationStatus(str, enum.Enum):
 class Organisation(Base):
     __tablename__ = "organisations"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, index=True)
     type = Column(String, nullable=True) # e.g. college
     description = Column(String, nullable=True)
@@ -28,7 +30,7 @@ class OrganisationDocument(Base):
     __tablename__ = "organization_documents"
 
     id = Column(Integer, primary_key=True, index=True)
-    org_id = Column(Integer, ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False)
     file_url = Column(String, nullable=False)
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
     
@@ -38,7 +40,7 @@ class VerificationLog(Base):
     __tablename__ = "verification_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    org_id = Column(Integer, ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False)
     action = Column(String, nullable=False) # APPROVED / REJECTED
     admin_id = Column(String, nullable=False)
     remarks = Column(Text, nullable=True)
