@@ -9,6 +9,13 @@ from app.schemas.auth import MessageResponse, UserResponse
 
 from shared.core.dependencies import validate_internal_key
 
+from app.api.deps import get_user_org_identifier_service
+from app.services.user_org_identifier_service import UserOrgIdentifierService
+from app.schemas.user_org_identifier import (
+    InternalVoterVerificationRequest,
+    InternalVoterVerificationResponse,
+)
+
 
 router = APIRouter(dependencies=[Depends(validate_internal_key)])
 
@@ -46,8 +53,20 @@ def get_user_internal(
         all_users = user_service.get_all_users()
         print(f"DEBUG AUTH INTERNAL: Total users in DB: {len(all_users)}")
         if all_users:
-            print(f"DEBUG AUTH INTERNAL: First user ID in DB: {all_users[0].id} (type={type(all_users[0].id)})")
-        
+            print(
+                f"DEBUG AUTH INTERNAL: First user ID in DB: {all_users[0].id} (type={type(all_users[0].id)})"
+            )
+
         raise HTTPException(status_code=404, detail="User not found")
 
     return user
+
+
+@router.post(
+    "/verify-org-identifiers", response_model=InternalVoterVerificationResponse
+)
+def verify_org_identifiers(
+    request_data: InternalVoterVerificationRequest,
+    service: UserOrgIdentifierService = Depends(get_user_org_identifier_service),
+):
+    return service.verify_identifiers(request_data.org_id, request_data.identifiers)

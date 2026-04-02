@@ -25,6 +25,7 @@ class UserRepository:
             full_name=user_data.full_name,
             password_hash=password_hash,
             user_type=user_data.user_type,
+            phone_number=user_data.phone_number,
             is_verified=False,
             is_suspended=False,
         )
@@ -35,15 +36,16 @@ class UserRepository:
 
     def create_admin(self, admin_data, password_hash: str) -> User:
         from app.models.user import UserRole, UserType
+
         db_user = User(
             email=admin_data.email,
             full_name=admin_data.full_name,
             password_hash=password_hash,
             role=UserRole.ADMIN,
             user_type=UserType.ORG_ADMIN,
-            is_verified=True,          # Admins don't need email verification
-            identity_verified=True,    # Bypass KYC
-            biometric_verified=True,   # Bypass Biometrics
+            is_verified=True,  # Admins don't need email verification
+            identity_verified=True,  # Bypass KYC
+            biometric_verified=True,  # Bypass Biometrics
             is_blocked=False,
             is_suspended=False,
         )
@@ -54,6 +56,7 @@ class UserRepository:
 
     def create_super_admin(self, email: str, password_hash: str) -> User:
         from app.models.user import UserRole, UserType
+
         # First check if super admin already exists
         existing = self.db.query(User).filter(User.email == email).first()
         if existing:
@@ -68,9 +71,9 @@ class UserRepository:
             password_hash=password_hash,
             role=UserRole.SUPER_ADMIN,
             user_type=UserType.ORG_ADMIN,
-            is_verified=True,          
-            identity_verified=True,    
-            biometric_verified=True,   
+            is_verified=True,
+            identity_verified=True,
+            biometric_verified=True,
             is_blocked=False,
             is_suspended=False,
         )
