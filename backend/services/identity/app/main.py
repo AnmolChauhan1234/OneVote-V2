@@ -14,7 +14,7 @@ CLIENT_URL = os.getenv("CLIENT_URL", "http://localhost:3000")
 # Root endpoint for health check
 @app.get("/")
 def read_root():
-    return {"status": "Identity Service is running", "env": API_ENV}
+    return {"status": "Identity Service is running", "env": GLOBAL_ENV}
 
 
 # Include versioned API router

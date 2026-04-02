@@ -243,7 +243,6 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${IDENTITY_DB}
-      AUTH_SERVICE_URL: http://localhost:8001
     volumes:
       - ./backend/services/identity:/app
       - ./backend/shared:/app/shared
@@ -259,7 +258,6 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${BIOMETRIC_DB}
-      AUTH_SERVICE_URL: http://localhost:8001
     volumes:
       - ./backend/services/biometric:/app
       - ./backend/shared:/app/shared
@@ -290,7 +288,6 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${ELECTION_DB}
-      AUTH_SERVICE_URL: http://localhost:8001
     volumes:
       - ./backend/services/election:/app
       - ./backend/shared:/app/shared

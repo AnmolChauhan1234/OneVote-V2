@@ -11,7 +11,7 @@ from app.repositories.biometric_repo import BiometricRepository
 from app.services.liveness import check_liveness
 
 
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth:8001")
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth:8000")
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "internal-secret")
 
 
