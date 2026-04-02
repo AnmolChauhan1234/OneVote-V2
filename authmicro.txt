@@ -1,0 +1,1594 @@
+==== backend/services/auth/alembic.ini ---
+# A generic, single database configuration.
+
+[alembic]
+# path to migration scripts.
+# this is typically a path given in POSIX (e.g. forward slashes)
+# format, relative to the token %(here)s which refers to the location of this
+# ini file
+script_location = %(here)s/alembic
+
+# template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
+# Uncomment the line below if you want the files to be prepended with date and time
+# see https://alembic.sqlalchemy.org/en/latest/tutorial.html#editing-the-ini-file
+# for all available tokens
+# file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
+# Or organize into date-based subdirectories (requires recursive_version_locations = true)
+# file_template = %%(year)d/%%(month).2d/%%(day).2d_%%(hour).2d%%(minute).2d_%%(second).2d_%%(rev)s_%%(slug)s
+
+# sys.path path, will be prepended to sys.path if present.
+# defaults to the current working directory.  for multiple paths, the path separator
+# is defined by "path_separator" below.
+prepend_sys_path = .
+
+# timezone to use when rendering the date within the migration file
+# as well as the filename.
+# If specified, requires the tzdata library which can be installed by adding
+# `alembic[tz]` to the pip requirements.
+# string value is passed to ZoneInfo()
+# leave blank for localtime
+# timezone =
+
+# max length of characters to apply to the "slug" field
+# truncate_slug_length = 40
+
+# set to 'true' to run the environment during
+# the 'revision' command, regardless of autogenerate
+# revision_environment = false
+
+# set to 'true' to allow .pyc and .pyo files without
+# a source .py file to be detected as revisions in the
+# versions/ directory
+# sourceless = false
+
+# version location specification; This defaults
+# to <script_location>/versions.  When using multiple version
+# directories, initial revisions must be specified with --version-path.
+# The path separator used here should be the separator specified by "path_separator"
+# below.
+# version_locations = %(here)s/bar:%(here)s/bat:%(here)s/alembic/versions
+
+# path_separator; This indicates what character is used to split lists of file
+# paths, including version_locations and prepend_sys_path within configparser
+# files such as alembic.ini.
+# The default rendered in new alembic.ini files is "os", which uses os.pathsep
+# to provide os-dependent path splitting.
+#
+# Note that in order to support legacy alembic.ini files, this default does NOT
+# take place if path_separator is not present in alembic.ini.  If this
+# option is omitted entirely, fallback logic is as follows:
+#
+# 1. Parsing of the version_locations option falls back to using the legacy
+#    "version_path_separator" key, which if absent then falls back to the legacy
+#    behavior of splitting on spaces and/or commas.
+# 2. Parsing of the prepend_sys_path option falls back to the legacy
+#    behavior of splitting on spaces, commas, or colons.
+#
+# Valid values for path_separator are:
+#
+# path_separator = :
+# path_separator = ;
+# path_separator = space
+# path_separator = newline
+#
+# Use os.pathsep. Default configuration used for new projects.
+path_separator = os
+
+# set to 'true' to search source files recursively
+# in each "version_locations" directory
+# new in Alembic version 1.10
+# recursive_version_locations = false
+
+# the output encoding used when revision files
+# are written from script.py.mako
+# output_encoding = utf-8
+
+# database URL.  This is consumed by the user-maintained env.py script only.
+# other means of configuring database URLs may be customized within the env.py
+# file.
+sqlalchemy.url = postgresql://postgres:postgres@db:5432/auth_db
+
+
+[post_write_hooks]
+# post_write_hooks defines scripts or Python functions that are run
+# on newly generated revision scripts.  See the documentation for further
+# detail and examples
+
+# format using "black" - use the console_scripts runner, against the "black" entrypoint
+# hooks = black
+# black.type = console_scripts
+# black.entrypoint = black
+# black.options = -l 79 REVISION_SCRIPT_FILENAME
+
+# lint with attempts to fix using "ruff" - use the module runner, against the "ruff" module
+# hooks = ruff
+# ruff.type = module
+# ruff.module = ruff
+# ruff.options = check --fix REVISION_SCRIPT_FILENAME
+
+# Alternatively, use the exec runner to execute a binary found on your PATH
+# hooks = ruff
+# ruff.type = exec
+# ruff.executable = ruff
+# ruff.options = check --fix REVISION_SCRIPT_FILENAME
+
+# Logging configuration.  This is also consumed by the user-maintained
+# env.py script only.
+[loggers]
+keys = root,sqlalchemy,alembic
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARNING
+handlers = console
+qualname =
+
+[logger_sqlalchemy]
+level = WARNING
+handlers =
+qualname = sqlalchemy.engine
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)-5.5s [%(name)s] %(message)s
+datefmt = %H:%M:%S
+
+==== backend/services/auth/Dockerfile ---
+FROM python:3.11-slim
+
+# 🔥 Set working directory
+WORKDIR /app
+
+# 🔥 Prevent Python buffering (better logs)
+ENV PYTHONUNBUFFERED=1
+
+# 🔥 Install system dependencies (minimal)
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# 🔥 Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 🔥 Copy application code
+COPY . .
+
+# 🔥 Expose port (optional)
+EXPOSE 8000
+
+# 🔥 Add entrypoint for migrations
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+==== backend/services/auth/entrypoint.sh ---
+#!/bin/sh
+
+echo "GLOBAL_ENV: $GLOBAL_ENV"
+
+if [ "$GLOBAL_ENV" = "development" ]; then
+  echo "Running migrations..."
+  alembic upgrade head
+else
+  echo "Skipping migrations..."
+fi
+
+echo "Starting app..."
+exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+==== backend/services/auth/requirements.txt ---
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+python-dotenv
+PyJWT
+redis
+email-validator
+alembic
+
+==== backend/services/auth/__init__.py ---
+
+==== backend/services/auth/alembic/env.py ---
+from logging.config import fileConfig
+import os
+
+from sqlalchemy import create_engine, pool
+from alembic import context
+
+from app.db.base import Base
+from app.models.user import User
+from app.models.session import Session
+from app.models.otp import OTP
+
+# Alembic Config object
+config = context.config
+
+# Setup logging
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+target_metadata = Base.metadata
+
+config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
+
+
+# -------------------------
+# OFFLINE MODE
+# -------------------------
+def run_migrations_offline() -> None:
+    """Run migrations without DB connection."""
+
+    url = os.getenv("DATABASE_URL")
+
+    if not url:
+        raise ValueError("DATABASE_URL is not set")
+
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+        compare_type=True,  # detects column type changes
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+# -------------------------
+# ONLINE MODE
+# -------------------------
+def run_migrations_online() -> None:
+    """Run migrations with live DB connection."""
+
+    database_url = os.getenv("DATABASE_URL")
+
+    if not database_url:
+        raise ValueError("DATABASE_URL is not set")
+
+    connectable = create_engine(
+        database_url,
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,  # detects column changes
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+# -------------------------
+# ENTRY POINT
+# -------------------------
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+
+==== backend/services/auth/alembic/README ---
+Generic single-database configuration.
+
+==== backend/services/auth/alembic/script.py.mako ---
+"""${message}
+
+Revision ID: ${up_revision}
+Revises: ${down_revision | comma,n}
+Create Date: ${create_date}
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+${imports if imports else ""}
+
+# revision identifiers, used by Alembic.
+revision: str = ${repr(up_revision)}
+down_revision: Union[str, Sequence[str], None] = ${repr(down_revision)}
+branch_labels: Union[str, Sequence[str], None] = ${repr(branch_labels)}
+depends_on: Union[str, Sequence[str], None] = ${repr(depends_on)}
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    ${upgrades if upgrades else "pass"}
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    ${downgrades if downgrades else "pass"}
+
+==== backend/services/auth/alembic/versions/1ed186e9064c_add_added_superadmin_role.py ---
+"""add added superadmin role
+
+Revision ID: 1ed186e9064c
+Revises: 67bf088458ca
+Create Date: 2026-03-29 09:25:47.418948
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = '1ed186e9064c'
+down_revision: Union[str, Sequence[str], None] = '67bf088458ca'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    pass
+    # ### end Alembic commands ###
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    pass
+    # ### end Alembic commands ###
+
+==== backend/services/auth/alembic/versions/67bf088458ca_inti.py ---
+"""inti
+
+Revision ID: 67bf088458ca
+Revises: 
+Create Date: 2026-03-29 09:06:56.933510
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = '67bf088458ca'
+down_revision: Union[str, Sequence[str], None] = None
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.create_table('users',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('full_name', sa.String(), nullable=False),
+    sa.Column('email', sa.String(), nullable=False),
+    sa.Column('password_hash', sa.String(), nullable=False),
+    sa.Column('is_verified', sa.Boolean(), nullable=True),
+    sa.Column('is_blocked', sa.Boolean(), nullable=True),
+    sa.Column('is_suspended', sa.Boolean(), nullable=True),
+    sa.Column('role', sa.String(), nullable=True),
+    sa.Column('user_type', sa.String(), nullable=True),
+    sa.Column('identity_verified', sa.Boolean(), nullable=True),
+    sa.Column('biometric_verified', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
+    op.create_table('otps',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('user_id', sa.UUID(), nullable=True),
+    sa.Column('otp_code', sa.String(), nullable=False),
+    sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('sessions',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('user_id', sa.UUID(), nullable=False),
+    sa.Column('refresh_token', sa.String(), nullable=False),
+    sa.Column('device_id', sa.String(), nullable=True),
+    sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_sessions_refresh_token'), 'sessions', ['refresh_token'], unique=True)
+    # ### end Alembic commands ###
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index(op.f('ix_sessions_refresh_token'), table_name='sessions')
+    op.drop_table('sessions')
+    op.drop_table('otps')
+    op.drop_index(op.f('ix_users_email'), table_name='users')
+    op.drop_table('users')
+    # ### end Alembic commands ###
+
+==== backend/services/auth/app/__init__.py ---
+
+==== backend/services/auth/app/main.py ---
+import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.v1 import auth_router, admin_router, internal_router
+
+# Database initialization handled by Alembic migrations
+
+
+from contextlib import asynccontextmanager
+
+from app.db.session import SessionLocal
+from app.repositories.user_repo import UserRepository
+from app.services.user_service import UserService
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Bootstrap Super Admin from Env
+    super_email = os.getenv("SUPERADMIN_EMAIL")
+    super_password = os.getenv("SUPERADMIN_PASSWORD")
+    if super_email and super_password:
+
+        db = SessionLocal()
+        try:
+            repo = UserRepository(db)
+            service = UserService(repo)
+            service.create_super_admin(super_email, super_password)
+            print(f"Super Admin bootstrapped successfully: {super_email}")
+        except Exception as e:
+            print(f" Failed to bootstrap super admin: {e}")
+        finally:
+            db.close()
+    yield
+
+
+# ---------------- APP INIT ----------------
+app = FastAPI(
+    title="Auth Service",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
+)
+
+
+# ---------------- CONFIG ----------------
+CLIENT_URL = os.getenv("CLIENT_URL", "http://localhost:3000")
+
+
+# ---------------- HEALTH CHECK ----------------
+@app.get("/health", tags=["health"])
+def health_check():
+    return {"status": "ok", "service": "auth"}
+
+
+# ---------------- ROUTES ----------------
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
+app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])
+
+==== backend/services/auth/app/api/__init__.py ---
+
+==== backend/services/auth/app/api/deps.py ---
+import os
+from sqlalchemy.orm import Session
+from fastapi import Depends, Request, HTTPException, status
+from app.db.session import get_db
+from app.db.redis import get_redis
+from app.repositories.user_repo import UserRepository
+from app.repositories.session_repo import SessionRepository
+from app.services.user_service import UserService
+from app.services.session_service import SessionService
+from app.services.otp_service import OTPService
+from redis import Redis
+
+
+def get_user_service(db: Session = Depends(get_db)) -> UserService:
+    repo = UserRepository(db)
+    return UserService(repo)
+
+
+def get_session_service(
+    db: Session = Depends(get_db), redis: Redis = Depends(get_redis)
+) -> SessionService:
+    repo = SessionRepository(db)
+    return SessionService(repo, redis)
+
+
+def get_otp_service(redis: Redis = Depends(get_redis)) -> OTPService:
+    return OTPService(redis)
+
+==== backend/services/auth/app/db/__init__.py ---
+from sqlalchemy.orm import declarative_base
+
+Base = declarative_base()
+
+# 🔥 Auto-load all models for Alembic
+import app.models
+
+==== backend/services/auth/app/db/base.py ---
+from sqlalchemy.orm import declarative_base
+
+Base = declarative_base()
+
+# 🔥 Auto-load all models for Alembic
+import app.models
+
+==== backend/services/auth/app/db/redis.py ---
+from shared.core.redis import redis_client
+
+def get_redis():
+    """
+    FastAPI dependency that returns the singleton Redis client.
+    """
+    return redis_client
+
+==== backend/services/auth/app/db/session.py ---
+import os
+import time
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+# 🔥 Get DB URL from env
+DATABASE_URL = os.environ["DATABASE_URL"]
+
+# 🔥 Retry DB connection (VERY IMPORTANT for Docker)
+for i in range(10):
+    try:
+        engine = create_engine(
+            DATABASE_URL,
+            pool_pre_ping=True,   # 🔥 avoids stale connections
+            pool_size=5,
+            max_overflow=10
+        )
+        conn = engine.connect()
+        conn.close()
+        print("✅ Database connected")
+        break
+    except Exception as e:
+        print(f"⏳ DB not ready, retrying... ({i+1}/10)")
+        time.sleep(3)
+else:
+    raise Exception("❌ Could not connect to database")
+
+# 🔥 Session factory
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
+
+# 🔥 FastAPI dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+==== backend/services/auth/app/models/__init__.py ---
+from .user import User
+from .session import Session
+from .otp import OTP
+
+==== backend/services/auth/app/models/otp.py ---
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from app.db.base import Base
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
+
+
+class OTP(Base):
+    __tablename__ = "otps"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    otp_code = Column(String, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+
+    user = relationship("User")
+
+==== backend/services/auth/app/models/session.py ---
+import uuid
+from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+from app.db.base import Base
+
+class Session(Base):
+    __tablename__ = "sessions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    refresh_token = Column(String, unique=True, index=True, nullable=False)
+    device_id = Column(String, nullable=True) # Optional device identification
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+
+    user = relationship("User")
+
+==== backend/services/auth/app/models/user.py ---
+import uuid
+from sqlalchemy import Column, String, Boolean, DateTime, Enum
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.sql import func
+import enum
+from app.db.base import Base
+
+
+class UserRole(str, enum.Enum):
+    SUPER_ADMIN = "super_admin"
+    ADMIN = "admin"
+    USER = "user"
+
+
+class UserType(str, enum.Enum):
+    VOTER = "voter"
+    ORG_ADMIN = "org_admin"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    full_name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+
+    is_verified = Column(Boolean, default=False)
+    is_blocked = Column(Boolean, default=False)
+    is_suspended = Column(Boolean, default=False)
+
+    role = Column(String, default=UserRole.USER)
+    user_type = Column(String, default=UserType.VOTER)
+
+    identity_verified = Column(Boolean, default=False)
+    biometric_verified = Column(Boolean, default=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+==== backend/services/auth/app/repositories/otp_repo.py ---
+from sqlalchemy.orm import Session as DBSession
+from app.models.otp import OTP
+from uuid import UUID
+from datetime import datetime
+
+class OTPRepository:
+    def create_otp(self, db: DBSession, user_id: UUID, code: str, expires_at: datetime) -> OTP:
+        db_otp = OTP(user_id=user_id, otp_code=code, expires_at=expires_at)
+        if db is not None:
+            db.add(db_otp)
+            db.commit()
+            db.refresh(db_otp)
+        return db_otp
+
+    def get_latest_otp_for_user(self, db: DBSession, user_id: UUID) -> OTP | None:
+        if db is None: return None
+        return db.query(OTP).filter(OTP.user_id == user_id).order_by(OTP.created_at.desc()).first()
+
+    def delete_otps_for_user(self, db: DBSession, user_id: UUID):
+        if db is not None:
+            db.query(OTP).filter(OTP.user_id == user_id).delete()
+            db.commit()
+
+otp_repo = OTPRepository()
+
+==== backend/services/auth/app/repositories/session_repo.py ---
+from sqlalchemy.orm import Session
+from app.models.session import Session as UserSession
+import uuid
+from datetime import datetime
+
+
+class SessionRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(self, user_id: uuid.UUID, refresh_token: str, expires_at: datetime, device_id: str = None) -> UserSession:
+        db_session = UserSession(
+            user_id=user_id,
+            refresh_token=refresh_token,
+            expires_at=expires_at,
+            device_id=device_id
+        )
+        self.db.add(db_session)
+        self.db.commit()
+        self.db.refresh(db_session)
+        return db_session
+
+    def get_by_token(self, refresh_token: str) -> UserSession | None:
+        return (
+            self.db.query(UserSession)
+            .filter(UserSession.refresh_token == refresh_token)
+            .first()
+        )
+
+    def get_by_user_id(self, user_id: uuid.UUID) -> UserSession | None:
+        return (
+            self.db.query(UserSession)
+            .filter(UserSession.user_id == user_id)
+            .first()
+        )
+
+    def delete_by_token(self, refresh_token: str):
+        self.db.query(UserSession).filter(UserSession.refresh_token == refresh_token).delete()
+        self.db.commit()
+
+    def delete_all_for_user(self, user_id: uuid.UUID):
+        self.db.query(UserSession).filter(UserSession.user_id == user_id).delete()
+        self.db.commit()
+
+==== backend/services/auth/app/repositories/user_repo.py ---
+from sqlalchemy.orm import Session
+from app.models.user import User
+from app.schemas.auth import RegisterRequest
+import uuid
+
+
+class UserRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_by_email(self, email: str) -> User | None:
+        return self.db.query(User).filter(User.email == email).first()
+
+    def get_by_id(self, user_id: uuid.UUID) -> User | None:
+        return self.db.query(User).filter(User.id == user_id).first()
+
+    def get_all(self) -> list[User]:
+        return self.db.query(User).all()
+
+    def create(self, user_data: RegisterRequest, password_hash: str) -> User:
+        db_user = User(
+            email=user_data.email,
+            full_name=user_data.full_name,
+            password_hash=password_hash,
+            user_type=user_data.user_type,
+            is_verified=False,
+            is_suspended=False,
+        )
+        self.db.add(db_user)
+        self.db.commit()
+        self.db.refresh(db_user)
+        return db_user
+
+    def create_admin(self, admin_data, password_hash: str) -> User:
+        from app.models.user import UserRole, UserType
+        db_user = User(
+            email=admin_data.email,
+            full_name=admin_data.full_name,
+            password_hash=password_hash,
+            role=UserRole.ADMIN,
+            user_type=UserType.ORG_ADMIN,
+            is_verified=True,          # Admins don't need email verification
+            identity_verified=True,    # Bypass KYC
+            biometric_verified=True,   # Bypass Biometrics
+            is_blocked=False,
+            is_suspended=False,
+        )
+        self.db.add(db_user)
+        self.db.commit()
+        self.db.refresh(db_user)
+        return db_user
+
+    def create_super_admin(self, email: str, password_hash: str) -> User:
+        from app.models.user import UserRole, UserType
+        # First check if super admin already exists
+        existing = self.db.query(User).filter(User.email == email).first()
+        if existing:
+            if existing.role != UserRole.SUPER_ADMIN:
+                existing.role = UserRole.SUPER_ADMIN
+                self.db.commit()
+            return existing
+
+        db_user = User(
+            email=email,
+            full_name="Super Administrator",
+            password_hash=password_hash,
+            role=UserRole.SUPER_ADMIN,
+            user_type=UserType.ORG_ADMIN,
+            is_verified=True,          
+            identity_verified=True,    
+            biometric_verified=True,   
+            is_blocked=False,
+            is_suspended=False,
+        )
+        self.db.add(db_user)
+        self.db.commit()
+        self.db.refresh(db_user)
+        return db_user
+
+    def update(self, user: User, update_data: dict) -> User:
+        for field, value in update_data.items():
+            if value is not None:
+                setattr(user, field, value)
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def delete(self, user: User):
+        self.db.delete(user)
+        self.db.commit()
+
+    def mark_verified(self, user: User):
+        user.is_verified = True
+        self.db.commit()
+        self.db.refresh(user)
+
+==== backend/services/auth/app/schemas/auth.py ---
+import uuid
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
+from datetime import datetime
+from app.models.user import UserRole, UserType
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr = Field(..., description="User's email address")
+    password: str = Field(..., min_length=6, description="User's password")
+    full_name: str = Field(..., description="User's full name")
+    user_type: UserType = Field(
+        UserType.VOTER, description="User type (voter/org_admin)"
+    )
+
+class AdminCreate(BaseModel):
+    email: EmailStr = Field(..., description="Administrator's email address")
+    password: str = Field(..., min_length=6, description="Administrator's password")
+    full_name: str = Field(..., description="Administrator's full name")
+
+class RegisterResponse(BaseModel):
+    message: str
+    user_id: uuid.UUID
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+    device_id: Optional[str] = None
+
+
+class GenerateOTPRequest(BaseModel):
+    email: EmailStr
+    purpose: str = Field("2fa", pattern="^(register|2fa|voting)$")
+
+
+class OTPVerifyRequest(BaseModel):
+    email: Optional[EmailStr] = None
+    user_id: Optional[uuid.UUID] = None
+    otp: str
+    purpose: str = Field("2fa", pattern="^(register|2fa|voting)$")
+
+
+class UserResponse(BaseModel):
+    id: uuid.UUID
+    email: EmailStr
+    full_name: str
+    role: UserRole
+    user_type: UserType
+    created_at: datetime
+    # updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    role: Optional[UserRole] = None
+    user_type: Optional[UserType] = None
+    is_blocked: Optional[bool] = None
+    is_suspended: Optional[bool] = None
+
+
+class MessageResponse(BaseModel):
+    message: str
+    test_otp: str | None = None
+
+==== backend/services/auth/app/services/otp_service.py ---
+import random
+import string
+from redis import Redis
+from typing import Optional
+
+
+class OTPService:
+    def __init__(self, redis_client: Redis):
+        self.redis = redis_client
+        self.otp_expiry = 300  # 5 minutes
+
+    def _generate_otp(self, length: int = 6) -> str:
+        return "".join(random.choices(string.digits, k=length))
+
+    def generate_otp(self, purpose: str, identifier: str) -> str:
+        """
+        purpose: register, 2fa, voting
+        identifier: email (for register) or user_id (for 2fa/voting)
+        """
+        otp = self._generate_otp()
+        key = f"otp:{purpose}:{identifier}"
+        self.redis.setex(key, self.otp_expiry, otp)
+        return otp
+
+    def verify_otp(self, purpose: str, identifier: str, otp: str) -> bool:
+        key = f"otp:{purpose}:{identifier}"
+        stored_otp = self.redis.get(key)
+
+        if stored_otp and stored_otp == otp:
+            self.redis.delete(key)
+            return True
+        return False
+
+==== backend/services/auth/app/services/session_service.py ---
+import uuid
+from datetime import datetime, timedelta, timezone
+from typing import Optional, Dict
+from app.repositories.session_repo import SessionRepository
+from shared.core.jwt import create_access_token, create_refresh_token, decode_token as decode_jwt
+from shared.core.config import settings
+from redis import Redis
+
+
+class SessionService:
+    def __init__(self, session_repo: SessionRepository, redis_client: Redis):
+        self.repo = session_repo
+        self.redis = redis_client
+
+    def create_session(self, user_id: uuid.UUID, device_id: str = None) -> Dict[str, str]:
+        # Enforce "Only one active session per user"
+        existing_session = self.repo.get_by_user_id(user_id)
+        if existing_session:
+            # Check if expired, if not, reject
+            if existing_session.expires_at > datetime.now(timezone.utc):
+                # Optionally, you could delete it and allow new login, 
+                # but requirement says "Reject login if session exists"
+                raise Exception("Active session already exists for this user.")
+            else:
+                self.repo.delete_all_for_user(user_id)
+
+        refresh_token = create_refresh_token({"sub": str(user_id)})
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_REFRESH_EXPIRY_MINUTES)
+        
+        self.repo.create(user_id, refresh_token, expires_at, device_id)
+        
+        access_token = create_access_token({"sub": str(user_id)})
+        
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token
+        }
+
+    def refresh_session(self, old_refresh_token: str) -> Dict[str, str]:
+        session = self.repo.get_by_token(old_refresh_token)
+        if not session or session.expires_at < datetime.now(timezone.utc):
+            if session:
+                self.repo.delete_by_token(old_refresh_token)
+            raise Exception("Invalid or expired refresh token")
+
+        # Refresh token rotation
+        user_id = session.user_id
+        self.repo.delete_by_token(old_refresh_token)
+        
+        new_refresh_token = create_refresh_token({"sub": str(user_id)})
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_REFRESH_EXPIRY_MINUTES)
+        
+        self.repo.create(user_id, new_refresh_token, expires_at, session.device_id)
+        
+        access_token = create_access_token({"sub": str(user_id)})
+        
+        return {
+            "access_token": access_token,
+            "refresh_token": new_refresh_token
+        }
+
+    def logout(self, user_id: uuid.UUID, access_token: str = None):
+        self.repo.delete_all_for_user(user_id)
+        if access_token:
+            # Blacklist access token in Redis
+            try:
+                payload = decode_jwt(access_token)
+                exp = payload.get("exp")
+                if exp:
+                    remaining = exp - int(datetime.now(timezone.utc).timestamp())
+                    if remaining > 0:
+                        self.redis.setex(f"blacklist:{access_token}", remaining, "1")
+            except:
+                pass
+
+    def is_access_token_blacklisted(self, access_token: str) -> bool:
+        return self.redis.exists(f"blacklist:{access_token}") > 0
+
+==== backend/services/auth/app/services/user_service.py ---
+import uuid
+from typing import List, Optional
+from app.repositories.user_repo import UserRepository
+from app.models.user import User, UserRole
+from app.schemas.auth import RegisterRequest
+from shared.core.security import hash_password as get_password_hash
+
+
+class UserService:
+    def __init__(self, user_repo: UserRepository):
+        self.repo = user_repo
+
+    def register_user(self, user_data: RegisterRequest) -> User:
+        if self.repo.get_by_email(user_data.email):
+            raise Exception("User with this email already exists")
+        
+        hashed_password = get_password_hash(user_data.password)
+        user = self.repo.create(user_data, hashed_password)
+        
+        return user
+
+    def create_admin(self, admin_data) -> User:
+        if self.repo.get_by_email(admin_data.email):
+            raise Exception("User with this email already exists")
+        
+        hashed_password = get_password_hash(admin_data.password)
+        user = self.repo.create_admin(admin_data, hashed_password)
+        
+        return user
+
+    def create_super_admin(self, email: str, password: str) -> User:
+        hashed_password = get_password_hash(password)
+        # We handle 'exists' check internally gracefully in repo to allow idempotent startup
+        return self.repo.create_super_admin(email, hashed_password)
+    def update_identity_status(self, user_id: uuid.UUID, status: bool) -> bool:
+        user = self.repo.get_by_id(user_id)
+        if not user:
+            return False
+        
+        self.repo.update(user, {"identity_verified": status})
+        
+        # If both are verified, mark the user as fully verified
+        if user.identity_verified and user.biometric_verified:
+            self.repo.mark_verified(user)
+            
+        return True
+
+    def update_biometric_status(self, user_id: uuid.UUID, status: bool) -> bool:
+        user = self.repo.get_by_id(user_id)
+        if not user:
+            return False
+        
+        self.repo.update(user, {"biometric_verified": status})
+        
+        # If both are verified, mark the user as fully verified
+        if user.identity_verified and user.biometric_verified:
+            self.repo.mark_verified(user)
+            
+        return True
+
+    def verify_user(self, email: str) -> bool:
+        user = self.repo.get_by_email(email)
+        if not user:
+            return False
+        self.repo.mark_verified(user)
+        return True
+
+    def get_user_by_id(self, user_id: uuid.UUID) -> Optional[User]:
+        return self.repo.get_by_id(user_id)
+
+    def get_user_by_email(self, email: str) -> Optional[User]:
+        return self.repo.get_by_email(email)
+
+    def get_all_users(self) -> List[User]:
+        return self.repo.get_all()
+
+    def block_user(self, user_id: uuid.UUID, requestor_role: str) -> bool:
+        user = self.repo.get_by_id(user_id)
+        if not user:
+            return False
+            
+        if user.role in [UserRole.SUPER_ADMIN, UserRole.ADMIN] and requestor_role != UserRole.SUPER_ADMIN:
+            raise Exception("Insufficient permissions to modify an administrator")
+            
+        self.repo.update(user, {"is_blocked": True})
+        return True
+
+    def suspend_user(self, user_id: uuid.UUID, requestor_role: str) -> bool:
+        user = self.repo.get_by_id(user_id)
+        if not user:
+            return False
+            
+        if user.role in [UserRole.SUPER_ADMIN, UserRole.ADMIN] and requestor_role != UserRole.SUPER_ADMIN:
+            raise Exception("Insufficient permissions to modify an administrator")
+            
+        self.repo.update(user, {"is_suspended": True})
+        return True
+
+    def delete_user(self, user_id: uuid.UUID, requestor_role: str) -> bool:
+        user = self.repo.get_by_id(user_id)
+        if not user:
+            return False
+            
+        if user.role in [UserRole.SUPER_ADMIN, UserRole.ADMIN] and requestor_role != UserRole.SUPER_ADMIN:
+            raise Exception("Insufficient permissions to modify an administrator")
+            
+        self.repo.delete(user)
+        return True
+
+==== backend/services/auth/scripts/cleanup_unverified_users.py ---
+import sys
+import os
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+# Add app directory to sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app.db.session import SQLALCHEMY_DATABASE_URL
+from app.models.user import User
+
+def cleanup_unverified_users():
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+    SessionLocal = sessionmaker(bind=engine)
+    db = SessionLocal()
+    
+    try:
+        threshold = datetime.now(timezone.utc) - timedelta(hours=24)
+        print(f"Cleaning up users created before {threshold} who are unverified...")
+        
+        deleted = db.query(User).filter(
+            User.is_verified == False,
+            User.created_at < threshold
+        ).delete()
+        
+        db.commit()
+        print(f"Successfully deleted {deleted} unverified users.")
+        
+    except Exception as e:
+        print(f"Error during cleanup: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+if __name__ == "__main__":
+    cleanup_unverified_users()
+
+==== backend/services/auth/scripts/create_superuser.py ---
+import argparse
+import sys
+import os
+
+# Add the parent directory to sys.path so we can import app and shared modules
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from app.db.session import SessionLocal
+from app.models.user import User, UserRole, UserType
+from shared.core.security import hash_password
+
+def create_super_admin(email: str, password: str, full_name: str):
+    db = SessionLocal()
+    try:
+        # Check if user already exists
+        existing_user = db.query(User).filter(User.email == email).first()
+        if existing_user:
+            print(f"User with email {email} already exists.")
+            # If so, optionally elevate them instead of crashing
+            if existing_user.role != UserRole.SUPER_ADMIN:
+                existing_user.role = UserRole.SUPER_ADMIN
+                existing_user.is_verified = True
+                db.commit()
+                print(f"Elevated {email} to Super Admin.")
+            return
+
+        # Create new super admin
+        hashed_pw = hash_password(password)
+        super_admin = User(
+            email=email,
+            full_name=full_name,
+            password_hash=hashed_pw,
+            role=UserRole.SUPER_ADMIN,
+            user_type=UserType.ORG_ADMIN,  # Super Admins might technically be ORG_ADMINs internally
+            is_verified=True,
+            identity_verified=True,
+            biometric_verified=True,
+            is_blocked=False,
+            is_suspended=False
+        )
+
+        db.add(super_admin)
+        db.commit()
+        db.refresh(super_admin)
+
+        print(f"Successfully created Super Admin: {email} (ID: {super_admin.id})")
+    except Exception as e:
+        print(f"Error creating super admin: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Create a Super Admin user.")
+    parser.add_argument("--email", required=True, help="Email address of the Super Admin")
+    parser.add_argument("--password", required=True, help="Password for the Super Admin")
+    parser.add_argument("--fullname", required=True, help="Full name of the Super Admin")
+
+    args = parser.parse_args()
+
+    create_super_admin(args.email, args.password, args.fullname)
+
+==== backend/shared/__init__.py ---
+
+==== backend/shared/core/__init__.py ---
+
+==== backend/shared/core/config.py ---
+import os
+
+
+class Settings:
+    # ---------------- ENV ----------------
+    v
+
+    # ---------------- JWT ----------------
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "")
+    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+    JWT_EXPIRY_MINUTES: int = int(os.getenv("JWT_EXPIRY_MINUTES", 60))
+    JWT_ACCESS_EXPIRY_MINUTES: int = int(os.getenv("JWT_ACCESS_EXPIRY_MINUTES", 5))
+    JWT_REFRESH_EXPIRY_MINUTES: int = int(os.getenv("JWT_REFRESH_EXPIRY_MINUTES", 20))
+
+    # ---------------- REDIS ----------------
+    REDIS_URL: str = os.getenv("REDIS_URL", "")
+
+    # fallback (for local/dev only)
+    REDIS_HOST: str = os.getenv("REDIS_HOST", "redis")
+    REDIS_PORT: int = int(os.getenv("REDIS_PORT", 6379))
+    REDIS_DB: int = int(os.getenv("REDIS_DB", 0))
+
+    # ---------------- DATABASE ----------------
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+
+    # ---------------- CLIENT ----------------
+    CLIENT_URL: str = os.getenv("CLIENT_URL", "http://localhost:3000")
+
+    # ---------------- INTERNAL ----------------
+    INTERNAL_API_KEY: str = os.getenv("INTERNAL_API_KEY", "internal-secret")
+
+
+settings = Settings()
+
+==== backend/shared/core/dependencies.py ---
+from fastapi import Request, HTTPException, Header, Depends
+from typing import Optional
+
+from shared.core.jwt import decode_token
+from shared.core.redis import redis_client
+
+
+# ---------------- GET CURRENT USER ----------------
+def get_current_user(
+    request: Request,
+    Authorization: Optional[str] = Header(None),
+):
+    """
+    Extract user from access token.
+    Supports:
+    - Cookie-based auth (primary)
+    - Authorization header (fallback for services / testing)
+    """
+
+    # 🔥 1. Get token from cookie (PRIMARY)
+    token = request.cookies.get("access_token")
+
+    # 🔁 2. Fallback to Authorization header
+    if not token and Authorization:
+        if Authorization.startswith("Bearer "):
+            token = Authorization.split(" ")[1]
+        else:
+            token = Authorization
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    # 🔥 3. Decode JWT
+    payload = decode_token(token)
+
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    # 🔥 4. Redis blacklist check
+    if redis_client.get(f"blacklist:{token}"):
+        raise HTTPException(status_code=401, detail="Token revoked")
+
+    return payload
+
+
+# ---------------- OPTIONAL: GET CURRENT USER ID ----------------
+def get_current_user_id(
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Shortcut dependency if you only need user_id
+    """
+    return current_user.get("sub")
+
+
+# ---------------- CSRF VALIDATION ----------------
+def validate_csrf(request: Request):
+    """
+    CSRF protection for state-changing requests (POST, PUT, DELETE)
+    """
+
+    csrf_cookie = request.cookies.get("csrf_token")
+    csrf_header = request.headers.get("X-CSRF-Token")
+
+    if not csrf_cookie or not csrf_header:
+        raise HTTPException(status_code=403, detail="CSRF token missing")
+
+    if csrf_cookie != csrf_header:
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+
+# ---------------- OPTIONAL: ADMIN CHECK ----------------
+def require_admin(current_user: dict = Depends(get_current_user)):
+    """
+    Role-based access control for standard admins and super admins.
+    """
+    if current_user.get("role") not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    return current_user
+
+
+# ---------------- SUPER ADMIN CHECK ----------------
+def require_super_admin(current_user: dict = Depends(get_current_user)):
+    """
+    Strict role-based access control exclusively for super admins.
+    """
+    if current_user.get("role") != "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin access required")
+
+    return current_user
+
+
+# ---------------- INTERNAL SERVICE VALIDATION ----------------
+def validate_internal_key(request: Request):
+    """
+    Validate internal API key for service-to-service communication.
+    """
+    from shared.core.config import settings
+    internal_key = request.headers.get("X-INTERNAL-KEY")
+    if not internal_key or internal_key != settings.INTERNAL_API_KEY:
+        raise HTTPException(
+            status_code=403, detail="Invalid internal key"
+        )
+
+==== backend/shared/core/jwt.py ---
+from datetime import datetime, timedelta
+from typing import Dict, Optional
+import jwt
+
+from shared.core.config import settings
+
+
+def create_access_token(data: Dict, expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Create JWT access token
+    """
+    to_encode = data.copy()
+
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=settings.JWT_ACCESS_EXPIRY_MINUTES)
+
+    to_encode.update({"exp": expire})
+
+    return jwt.encode(
+        to_encode, 
+        settings.JWT_SECRET, 
+        algorithm=settings.JWT_ALGORITHM
+    )
+
+
+def create_refresh_token(data: Dict) -> str:
+    """
+    Create JWT refresh token using the configured refresh expiry.
+    """
+    expires = timedelta(minutes=settings.JWT_REFRESH_EXPIRY_MINUTES)
+    return create_access_token(data, expires_delta=expires)
+
+
+def decode_token(token: str) -> Optional[Dict]:
+    """
+    Decode JWT token
+    Returns None if invalid instead of raising (important for dependencies)
+    """
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET,
+            algorithms=[settings.JWT_ALGORITHM],
+        )
+        return payload
+
+    except jwt.ExpiredSignatureError:
+        return None
+
+    except jwt.InvalidTokenError:
+        return None
+
+==== backend/shared/core/logging.py ---
+import logging
+
+
+def setup_logging(service_name: str):
+    logging.basicConfig(
+        level=logging.INFO,
+        format=f"%(asctime)s | {service_name} | %(levelname)s | %(message)s",
+    )
+
+    return logging.getLogger(service_name)
+
+==== backend/shared/core/redis.py ---
+import redis
+from shared.core.config import settings
+
+
+def get_redis_client():
+    """
+    Create Redis client based on environment configuration.
+
+    Priority:
+    1. REDIS_URL (recommended for production & also works for dev)
+    2. Fallback to host/port (local Docker)
+    """
+
+    # 🔥 Preferred way (works for both dev & prod)
+    if settings.REDIS_URL:
+        return redis.from_url(
+            settings.REDIS_URL,
+            decode_responses=True,
+        )
+
+    # ⚠️ Fallback (only if REDIS_URL not provided)
+    return redis.Redis(
+        host=settings.REDIS_HOST,
+        port=settings.REDIS_PORT,
+        db=settings.REDIS_DB,
+        decode_responses=True,
+    )
+
+
+# 🔥 Singleton Redis client
+redis_client = get_redis_client()
+
+
+# -----------------------------
+# SESSION MANAGEMENT
+# -----------------------------
+
+def set_session(session_id: str, user_id: str, ttl: int = 3600):
+    redis_client.set(f"session:{session_id}", user_id, ex=ttl)
+
+
+def get_session(session_id: str):
+    return redis_client.get(f"session:{session_id}")
+
+
+def delete_session(session_id: str):
+    redis_client.delete(f"session:{session_id}")
+
+
+# -----------------------------
+# TOKEN BLACKLIST
+# -----------------------------
+
+def blacklist_token(token: str, ttl: int = 3600):
+    """
+    Add token to blacklist (used during logout)
+    """
+    redis_client.set(f"blacklist:{token}", "1", ex=ttl)
+
+
+def is_token_blacklisted(token: str) -> bool:
+    """
+    Check if token is blacklisted
+    """
+    return redis_client.get(f"blacklist:{token}") is not None
+
+
+# -----------------------------
+# OPTIONAL: HEALTH CHECK
+# -----------------------------
+
+def check_redis_connection():
+    """
+    Useful for debugging / health endpoint
+    """
+    try:
+        redis_client.ping()
+        return True
+    except Exception:
+        return False
+
+==== backend/shared/core/security.py ---
+import hashlib
+import secrets
+
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    return hash_password(password) == hashed
+
+
+def generate_secure_token(length: int = 32) -> str:
+    return secrets.token_hex(length)
+
+==== backend/shared/utils/__init__.py ---
+
+==== backend/shared/utils/hashing.py ---
+import hashlib
+
+
+def sha256_hash(data: str) -> str:
+    return hashlib.sha256(data.encode()).hexdigest()
+
+==== backend/shared/utils/otp.py ---
+import random
+
+
+def generate_otp(length: int = 6) -> str:
+    return "".join([str(random.randint(0, 9)) for _ in range(length)])
+
+==== backend/shared/utils/rate_limiter.py ---
+from shared.core.redis import get_redis
+
+
+def is_rate_limited(key: str, limit: int = 5, window: int = 60) -> bool:
+    redis_client = get_redis()
+
+    current = redis_client.get(key)
+
+    if current and int(current) >= limit:
+        return True
+
+    pipe = redis_client.pipeline()
+    pipe.incr(key, 1)
+    pipe.expire(key, window)
+    pipe.execute()
+
+    return False
+
+==== backend/shared/utils/time.py ---
+from datetime import datetime
+
+
+def utc_now():
+    return datetime.utcnow()
+
+
+def iso_now():
+    return datetime.utcnow().isoformat()
