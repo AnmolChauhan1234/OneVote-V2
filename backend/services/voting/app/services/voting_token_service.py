@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import HTTPException
 
 
@@ -18,7 +18,7 @@ class VotingTokenService:
                 detail="Invalid or already used token"
             )
 
-        if token.expires_at < datetime.utcnow():
+        if token.expires_at < datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=400,
                 detail="Token expired"
@@ -36,7 +36,14 @@ class VotingTokenService:
         if existing:
             return existing
 
-        return self.repo.create_token(user_id, election_id)
+        try:
+            token = self.repo.create_token(user_id, election_id)
+            self.repo.commit()
+            self.repo.refresh(token)
+            return token
+        except Exception:
+            self.repo.rollback()
+            raise
 
     # ----------------------------------------
     # 🎟 MARK TOKEN USED

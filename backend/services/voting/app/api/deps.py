@@ -20,14 +20,14 @@ def get_voting_token_repo(db: Session = Depends(get_db)) -> VotingTokenRepositor
 
 # ---------------- SERVICES ----------------
 
-def get_voting_service(
-    repo: VotingRepository = Depends(get_voting_repo),
-    token_repo: VotingTokenRepository = Depends(get_voting_token_repo),
-) -> VotingService:
-    return VotingService(repo, token_repo)
-
-
 def get_voting_token_service(
     repo: VotingTokenRepository = Depends(get_voting_token_repo),
 ) -> VotingTokenService:
     return VotingTokenService(repo)
+
+
+def get_voting_service(
+    repo: VotingRepository = Depends(get_voting_repo),
+    token_service: VotingTokenService = Depends(get_voting_token_service),
+) -> VotingService:
+    return VotingService(repo, token_service)

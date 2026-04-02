@@ -35,6 +35,7 @@ class VotingRepository:
     # ----------------------------------------
     def create_vote(
         self,
+        organisation_id,
         election_id,
         position_id,
         candidate_id,
@@ -44,6 +45,7 @@ class VotingRepository:
         block_index,
     ):
         vote = Vote(
+            organisation_id=organisation_id,
             election_id=election_id,
             position_id=position_id,
             candidate_id=candidate_id,

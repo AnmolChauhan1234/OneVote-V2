@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.voting_token import VotingToken
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 class VotingTokenRepository:
@@ -25,7 +25,7 @@ class VotingTokenRepository:
     # 🎟 Create token (NO COMMIT)
     # ----------------------------------------
     def create_token(self, user_id, election_id):
-        expires_at = datetime.utcnow() + timedelta(minutes=10)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
 
         token = VotingToken(
             user_id=user_id,
@@ -47,3 +47,15 @@ class VotingTokenRepository:
         self.db.flush()
 
         return token
+
+    # ----------------------------------------
+    # 🔁 TRANSACTION CONTROL
+    # ----------------------------------------
+    def commit(self):
+        self.db.commit()
+
+    def rollback(self):
+        self.db.rollback()
+
+    def refresh(self, obj):
+        self.db.refresh(obj)

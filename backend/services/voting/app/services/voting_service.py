@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import HTTPException
 
 from app.services.hash_chain import create_vote_hash, verify_vote_chain
@@ -7,9 +7,9 @@ from app.services.biometric_validation import validate_biometric_token
 
 
 class VotingService:
-    def __init__(self, repo, token_repo):
+    def __init__(self, repo, token_service):
         self.repo = repo
-        self.token_repo = token_repo
+        self.token_service = token_service
 
     # ----------------------------------------
     # 🗳 CAST VOTE
@@ -28,7 +28,7 @@ class VotingService:
             )
 
             # 🔒 Step 2 — Validate voting token
-            token = self.token_repo.validate_token(
+            token = self.token_service.validate_token(
                 user_id,
                 vote_data.election_id
             )
@@ -58,7 +58,7 @@ class VotingService:
                 previous_hash = "GENESIS"
                 block_index = 1
 
-            timestamp = datetime.utcnow().isoformat()
+            timestamp = datetime.now(timezone.utc).isoformat()
 
             vote_hash = create_vote_hash(
                 election_id=vote_data.election_id,
@@ -71,6 +71,7 @@ class VotingService:
 
             # 🗳 Step 6 — Store vote
             new_vote = self.repo.create_vote(
+                organisation_id=vote_data.organisation_id,
                 election_id=vote_data.election_id,
                 position_id=vote_data.position_id,
                 candidate_id=vote_data.candidate_id,
@@ -87,7 +88,7 @@ class VotingService:
             )
 
             # 🎟 Step 8 — Mark token used
-            self.token_repo.mark_token_used(token)
+            self.token_service.mark_token_used(token)
 
             # ✅ Commit
             self.repo.commit()

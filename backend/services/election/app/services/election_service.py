@@ -87,7 +87,7 @@ class ElectionService:
             candidates.extend(self.get_candidates(pos.id))
 
         voting_url = os.getenv("VOTING_SERVICE_URL", "http://voting:8000")
-        internal_key = os.getenv("INTERNAL_API_KEY", "supersecret")
+        internal_key = os.getenv("INTERNAL_API_KEY", "internal-secret")
 
         try:
             async with httpx.AsyncClient() as client:
@@ -223,11 +223,11 @@ class ElectionService:
 
             # Call Auth Service for verification
             auth_url = os.getenv("AUTH_SERVICE_URL", "http://auth:8000")
-            internal_key = os.getenv("INTERNAL_API_KEY", "supersecret")
+            internal_key = os.getenv("INTERNAL_API_KEY", "internal-secret")
 
             async with httpx.AsyncClient() as client:
                 resp = await client.post(
-                    f"{auth_url}/api/v1/internal/auth/verify-org-identifiers",
+                    f"{auth_url}/api/v1/internal/verify-org-identifiers",
                     json={"org_id": str(election.org_id), "identifiers": list(set(identifiers))},
                     headers={"X-INTERNAL-KEY": internal_key},
                     timeout=10.0
