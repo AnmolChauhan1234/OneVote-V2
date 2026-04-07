@@ -1,14 +1,10 @@
 import os
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 
 from app.api.v1 import auth_router, admin_router, internal_router
-
-# Database initialization handled by Alembic migrations
-
-
-from contextlib import asynccontextmanager
-
 from app.db.session import SessionLocal
 from app.repositories.user_repo import UserRepository
 from app.services.user_service import UserService
@@ -34,6 +30,12 @@ async def lifespan(app: FastAPI):
     yield
 
 
+# ---------------- SECURITY SCHEMES (SWAGGER UI) ----------------
+# These make "X-CSRF-Token" and "Authorization" (Bearer) appear in the "Authorize" button
+csrf_header = APIKeyHeader(name="X-CSRF-Token", auto_error=False)
+auth_header = APIKeyHeader(name="Authorization", auto_error=False)
+
+
 # ---------------- APP INIT ----------------
 app = FastAPI(
     title="Auth Service",
@@ -41,6 +43,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
+    dependencies=[Depends(csrf_header), Depends(auth_header)],
 )
 
 
