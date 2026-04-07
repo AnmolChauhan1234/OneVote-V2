@@ -9,3 +9,4 @@ pytz
 PyJWT
 redis
 alembic
+httpx

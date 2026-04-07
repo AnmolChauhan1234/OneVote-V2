@@ -4,6 +4,7 @@ import uuid
 
 from app.api.deps import get_organisation_service
 from app.services.organisation_service import OrganisationService
+from shared.core.dependencies import get_current_user
 from app.schemas.organisation import OrganisationResponse, OrganisationCreate, OrganisationUpdate
 
 router = APIRouter()
@@ -14,15 +15,15 @@ def create_organisation(
     name: str = Form(...),
     type: str = Form(None),
     description: str = Form(None),
-    ownerId: str = Form(None),
     document: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
     service: OrganisationService = Depends(get_organisation_service),
 ):
     org_in = OrganisationCreate(
         name=name,
         type=type,
         description=description,
-        owner_id=ownerId,
+        owner_id=str(current_user["sub"]),
     )
     return service.create_organisation(org_in, document)
 

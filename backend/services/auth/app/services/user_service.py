@@ -106,3 +106,11 @@ class UserService:
             
         self.repo.delete(user)
         return True
+
+    def update_user_type(self, user_id: uuid.UUID, user_type: str) -> bool:
+        user = self.repo.get_by_id(user_id)
+        if not user:
+            return False
+        
+        self.repo.update_user_type(user, user_type)
+        return True

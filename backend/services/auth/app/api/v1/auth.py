@@ -1,5 +1,7 @@
 import os
 import secrets
+import uuid
+from typing import Optional, List
 from fastapi import APIRouter, Depends, Response, Request, status, HTTPException, Header
 
 from app.api.deps import (
@@ -8,6 +10,7 @@ from app.api.deps import (
     get_otp_service,
     get_user_org_identifier_service,
 )
+import httpx
 from app.services.user_service import UserService
 from app.services.session_service import SessionService
 from app.services.otp_service import OTPService
@@ -17,6 +20,7 @@ from app.schemas.auth import (
     RegisterRequest,
     RegisterResponse,
     LoginRequest,
+    LoginResponse,
     OTPVerifyRequest,
     GenerateOTPRequest,
     UserResponse,
@@ -44,6 +48,29 @@ SECURE_COOKIE = GLOBAL_ENV == "production"
 ACCESS_TOKEN_AGE = settings.JWT_ACCESS_EXPIRY_MINUTES * 60  # in seconds
 REFRESH_TOKEN_AGE = settings.JWT_REFRESH_EXPIRY_MINUTES * 60  # in seconds
 
+ORGANISATION_SERVICE_URL = os.getenv("ORGANISATION_SERVICE_URL", "http://organisation:8000")
+INTERNAL_API_KEY = settings.INTERNAL_API_KEY
+
+
+async def _get_org_ids(user_id: str) -> List[uuid.UUID]:
+    """
+    Helper to fetch org_ids from organisation service.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{ORGANISATION_SERVICE_URL}/api/v1/internal/owners/{user_id}/org",
+                headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
+                timeout=5.0
+            )
+            if response.status_code == 200:
+                data = response.json()
+                ids = data.get("org_ids", [])
+                return [uuid.UUID(oid) for oid in ids]
+    except Exception as e:
+        print(f"Error fetching org_ids for user {user_id}: {e}")
+    return []
+
 
 # ---------------- REGISTER ----------------
 @router.post(
@@ -63,8 +90,8 @@ def register(
 
 
 # ---------------- LOGIN ----------------
-@router.post("/login", response_model=MessageResponse)
-def login(
+@router.post("/login", response_model=LoginResponse)
+async def login(
     login_data: LoginRequest,
     response: Response,
     user_service: UserService = Depends(get_user_service),
@@ -88,7 +115,16 @@ def login(
         raise HTTPException(status_code=403, detail="Account is blocked")
 
     try:
-        tokens = session_service.create_session(user.id, login_data.device_id)
+        # Fetch org_ids for any user who might own organizations
+        org_ids = await _get_org_ids(str(user.id))
+
+        tokens = session_service.create_session(
+            user_id=user.id,
+            role=user.role,
+            user_type=user.user_type,
+            org_ids=org_ids,
+            device_id=login_data.device_id
+        )
 
         # 🔥 Access Token Cookie
         response.set_cookie(
@@ -121,9 +157,16 @@ def login(
             samesite="lax",
         )
 
-        return {"message": "Login successful"}
+        return {
+            "message": "Login successful",
+            "user_id": user.id,
+            "role": user.role,
+            "user_type": user.user_type,
+            "org_ids": org_ids
+        }
 
-    except Exception:
+    except Exception as e:
+        print(f"Login error: {e}")
         raise HTTPException(
             status_code=500, detail="An error occurred during login. Please try again."
         )
@@ -133,9 +176,10 @@ def login(
 @router.post(
     "/refresh", response_model=MessageResponse, dependencies=[Depends(validate_csrf)]
 )
-def refresh(
+async def refresh(
     request: Request,
     response: Response,
+    user_service: UserService = Depends(get_user_service),
     session_service: SessionService = Depends(get_session_service),
 ):
     refresh_token = request.cookies.get("refresh_token")
@@ -144,7 +188,27 @@ def refresh(
         raise HTTPException(status_code=401, detail="Refresh token missing")
 
     try:
-        tokens = session_service.refresh_session(refresh_token)
+        # To refresh, we need the user data to populate the new access token
+        # Get user ID from refresh token (it only contains 'sub')
+        from shared.core.jwt import decode_token
+        payload = decode_token(refresh_token)
+        if not payload:
+             raise HTTPException(status_code=401, detail="Invalid refresh token")
+        
+        user_id = payload.get("sub")
+        user = user_service.get_user_by_id(uuid.UUID(user_id))
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+
+        # Fetch org_ids for any user who might own organizations
+        org_ids = await _get_org_ids(str(user.id))
+
+        tokens = session_service.refresh_session(
+            old_refresh_token=refresh_token,
+            role=user.role,
+            user_type=user.user_type,
+            org_ids=org_ids
+        )
 
         response.set_cookie(
             key="access_token",
@@ -202,8 +266,21 @@ def get_me(
     current_user=Depends(get_current_user),
     user_service: UserService = Depends(get_user_service),
 ):
-    user = user_service.get_user_by_id(current_user.get("sub"))
-    return user
+    user_id = current_user.get("sub")
+    user = user_service.get_user_by_id(user_id)
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Map database user to schema and inject data from token for consistency
+    # (Or just use database data if we want most up-to-date)
+    response_data = UserResponse.model_validate(user)
+    
+    # Ensure org_ids from token is used
+    org_ids = current_user.get("org_ids", [])
+    response_data.org_ids = [uuid.UUID(oid) for oid in org_ids]
+    
+    return response_data
 
 
 # ---------------- OTP ----------------
@@ -215,7 +292,7 @@ def generate_otp(
 
     response = {"message": f"OTP generated for {request_data.purpose}"}
 
-    if API_ENV == "development":
+    if GLOBAL_ENV == "development":
         response["test_otp"] = otp
 
     return response

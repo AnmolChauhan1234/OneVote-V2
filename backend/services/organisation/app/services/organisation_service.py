@@ -3,6 +3,11 @@ import uuid
 
 from app.repositories.organisation_repo import OrganisationRepository
 from app.schemas.organisation import OrganisationCreate, OrganisationUpdate, OrganisationStatus
+import httpx
+import os
+from shared.core.config import settings
+
+AUTH_SERVICE_INTERNAL_URL = os.getenv("AUTH_SERVICE_INTERNAL_URL", "http://auth:8000")
 
 
 def mock_upload_to_cloudflare(file: UploadFile) -> str:
@@ -22,6 +27,9 @@ class OrganisationService:
             raise HTTPException(status_code=404, detail="Organisation not found")
         return org
 
+    def get_organisation_by_owner(self, owner_id: str):
+        return self.repo.get_all_by_owner_id(owner_id)
+
     def list_organisations(self, skip: int = 0, limit: int = 100):
         return self.repo.get_all(skip, limit)
 
@@ -34,6 +42,18 @@ class OrganisationService:
 
             self.repo.commit()
             self.repo.refresh(org)
+
+            # Update Auth service
+            try:
+                with httpx.Client() as client:
+                    client.post(
+                        f"{AUTH_SERVICE_INTERNAL_URL}/api/v1/internal/update-user-type",
+                        json={"user_id": org_in.owner_id, "user_type": "org_admin"},
+                        headers={"X-INTERNAL-KEY": settings.INTERNAL_API_KEY},
+                        timeout=5.0
+                    )
+            except Exception as e:
+                print(f"WARNING: Auth update failed: {e}")
 
             return org
 

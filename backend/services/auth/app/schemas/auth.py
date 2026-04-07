@@ -1,6 +1,6 @@
 import uuid
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from app.models.user import UserRole, UserType
 
@@ -24,6 +24,14 @@ class AdminCreate(BaseModel):
 class RegisterResponse(BaseModel):
     message: str
     user_id: uuid.UUID
+
+
+class LoginResponse(BaseModel):
+    message: str
+    user_id: uuid.UUID
+    role: UserRole
+    user_type: UserType
+    org_ids: List[uuid.UUID] = Field(default_factory=list)
 
 
 class LoginRequest(BaseModel):
@@ -50,6 +58,7 @@ class UserResponse(BaseModel):
     full_name: str
     role: UserRole
     user_type: UserType
+    org_ids: List[uuid.UUID] = Field(default_factory=list)
     phone_number: str
     created_at: datetime
     # updated_at: datetime

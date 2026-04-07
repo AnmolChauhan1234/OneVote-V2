@@ -42,7 +42,7 @@ class UserRepository:
             full_name=admin_data.full_name,
             password_hash=password_hash,
             role=UserRole.ADMIN,
-            user_type=UserType.ORG_ADMIN,
+            user_type=UserType.VOTER,
             is_verified=True,  # Admins don't need email verification
             identity_verified=True,  # Bypass KYC
             biometric_verified=True,  # Bypass Biometrics
@@ -70,7 +70,7 @@ class UserRepository:
             full_name="Super Administrator",
             password_hash=password_hash,
             role=UserRole.SUPER_ADMIN,
-            user_type=UserType.ORG_ADMIN,
+            user_type=UserType.VOTER,
             is_verified=True,
             identity_verified=True,
             biometric_verified=True,
@@ -96,5 +96,11 @@ class UserRepository:
 
     def mark_verified(self, user: User):
         user.is_verified = True
+        self.db.commit()
+        self.db.refresh(user)
+
+    def update_user_type(self, user: User, user_type: str):
+        from app.models.user import UserType
+        user.user_type = UserType(user_type)
         self.db.commit()
         self.db.refresh(user)

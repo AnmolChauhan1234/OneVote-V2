@@ -10,6 +10,7 @@ from app.schemas.organisation import (
     ApproveOrganisationRequest,
     RejectOrganisationRequest,
 )
+from shared.core.dependencies import require_admin
 
 router = APIRouter()
 
@@ -17,6 +18,7 @@ router = APIRouter()
 @router.get("/organizations/{org_id}/documents", response_model=List[OrganisationDocumentResponse])
 def get_organisation_documents(
     org_id: uuid.UUID,
+    current_user: dict = Depends(require_admin),
     service: OrganisationService = Depends(get_organisation_service),
 ):
     return service.get_documents(org_id)
@@ -25,6 +27,7 @@ def get_organisation_documents(
 @router.get("/organizations", response_model=List[OrganisationListPendingResponse])
 def list_pending_organisations(
     status: str = "PENDING_VERIFICATION",
+    current_user: dict = Depends(require_admin),
     service: OrganisationService = Depends(get_organisation_service),
 ):
     return service.get_pending_organisations()
@@ -34,10 +37,10 @@ def list_pending_organisations(
 def approve_organisation(
     org_id: uuid.UUID,
     req: ApproveOrganisationRequest,
+    current_user: dict = Depends(require_admin),
     service: OrganisationService = Depends(get_organisation_service),
 ):
-    admin_id = "admin_001"
-
+    admin_id = str(current_user["sub"])
     org = service.approve_organisation(org_id, admin_id, req.remarks)
 
     return {
@@ -50,10 +53,10 @@ def approve_organisation(
 def reject_organisation(
     org_id: uuid.UUID,
     req: RejectOrganisationRequest,
+    current_user: dict = Depends(require_admin),
     service: OrganisationService = Depends(get_organisation_service),
 ):
-    admin_id = "admin_001"
-
+    admin_id = str(current_user["sub"])
     org = service.reject_organisation(org_id, admin_id, req.reason)
 
     return {

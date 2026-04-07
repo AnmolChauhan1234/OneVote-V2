@@ -17,6 +17,9 @@ class OrganisationRepository:
     def get_by_id(self, org_id: uuid.UUID) -> Optional[Organisation]:
         return self.db.query(Organisation).filter(Organisation.id == org_id).first()
 
+    def get_all_by_owner_id(self, owner_id: str) -> List[Organisation]:
+        return self.db.query(Organisation).filter(Organisation.owner_id == owner_id).all()
+
     def get_all(self, skip: int = 0, limit: int = 100) -> List[Organisation]:
         return self.db.query(Organisation).offset(skip).limit(limit).all()
 

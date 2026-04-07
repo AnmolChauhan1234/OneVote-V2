@@ -11,6 +11,7 @@ from shared.core.dependencies import validate_internal_key
 
 from app.api.deps import get_user_org_identifier_service
 from app.services.user_org_identifier_service import UserOrgIdentifierService
+from app.schemas.internal import VerificationUpdate, UserTypeUpdate
 from app.schemas.user_org_identifier import (
     InternalVoterVerificationRequest,
     InternalVoterVerificationResponse,
@@ -70,3 +71,13 @@ def verify_org_identifiers(
     service: UserOrgIdentifierService = Depends(get_user_org_identifier_service),
 ):
     return service.verify_identifiers(request_data.org_id, request_data.identifiers)
+
+
+@router.post("/update-user-type", response_model=MessageResponse)
+def update_user_type(
+    data: UserTypeUpdate, user_service: UserService = Depends(get_user_service)
+):
+    if user_service.update_user_type(data.user_id, data.user_type):
+        return {"message": f"User type updated to {data.user_type}"}
+
+    raise HTTPException(status_code=404, detail="User not found")

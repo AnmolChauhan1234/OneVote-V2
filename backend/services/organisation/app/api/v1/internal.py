@@ -20,3 +20,12 @@ def get_organisation_eligibility(
     service: OrganisationService = Depends(get_organisation_service),
 ):
     return service.check_eligibility(org_id)
+
+
+@router.get("/owners/{owner_id}/org")
+def get_owner_org(
+    owner_id: str,
+    service: OrganisationService = Depends(get_organisation_service),
+):
+    orgs = service.get_organisation_by_owner(owner_id)
+    return {"org_ids": [str(org.id) for org in orgs]}

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from app.repositories.session_repo import SessionRepository
 from shared.core.jwt import create_access_token, create_refresh_token, decode_token as decode_jwt
 from shared.core.config import settings
@@ -12,14 +12,19 @@ class SessionService:
         self.repo = session_repo
         self.redis = redis_client
 
-    def create_session(self, user_id: uuid.UUID, device_id: str = None) -> Dict[str, str]:
+    def create_session(
+        self, 
+        user_id: uuid.UUID, 
+        role: str, 
+        user_type: str, 
+        org_ids: List[uuid.UUID] = None, 
+        device_id: str = None
+    ) -> Dict[str, str]:
         # Enforce "Only one active session per user"
         existing_session = self.repo.get_by_user_id(user_id)
         if existing_session:
             # Check if expired, if not, reject
             if existing_session.expires_at > datetime.now(timezone.utc):
-                # Optionally, you could delete it and allow new login, 
-                # but requirement says "Reject login if session exists"
                 raise Exception("Active session already exists for this user.")
             else:
                 self.repo.delete_all_for_user(user_id)
@@ -29,14 +34,26 @@ class SessionService:
         
         self.repo.create(user_id, refresh_token, expires_at, device_id)
         
-        access_token = create_access_token({"sub": str(user_id)})
+        payload = {
+            "sub": str(user_id),
+            "role": role,
+            "user_type": user_type,
+            "org_ids": [str(oid) for oid in (org_ids or [])]
+        }
+        access_token = create_access_token(payload)
         
         return {
             "access_token": access_token,
             "refresh_token": refresh_token
         }
 
-    def refresh_session(self, old_refresh_token: str) -> Dict[str, str]:
+    def refresh_session(
+        self, 
+        old_refresh_token: str, 
+        role: str, 
+        user_type: str, 
+        org_ids: List[uuid.UUID] = None
+    ) -> Dict[str, str]:
         session = self.repo.get_by_token(old_refresh_token)
         if not session or session.expires_at < datetime.now(timezone.utc):
             if session:
@@ -52,7 +69,13 @@ class SessionService:
         
         self.repo.create(user_id, new_refresh_token, expires_at, session.device_id)
         
-        access_token = create_access_token({"sub": str(user_id)})
+        payload = {
+            "sub": str(user_id),
+            "role": role,
+            "user_type": user_type,
+            "org_ids": [str(oid) for oid in (org_ids or [])]
+        }
+        access_token = create_access_token(payload)
         
         return {
             "access_token": access_token,
