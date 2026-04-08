@@ -1,13 +1,9 @@
+import {LogEntry} from "@/types/logger.type";
+
 type LogLevel = "debug" | "info" | "warn" | "error"
 
-interface LogEntry {
-  level: LogLevel
-  message: string
-  data?: unknown
-  timestamp: string
-}
 
-const isDev = process.env.NODE_ENV === "development"
+const isDev = (process.env.NEXT_ENV === "development")
 
 const formatEntry = (level: LogLevel, message: string, data?: unknown): LogEntry => ({
   level,
