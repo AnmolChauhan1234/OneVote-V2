@@ -29,6 +29,7 @@ from app.schemas.auth import (
 from app.schemas.user_org_identifier import (
     UserOrgIdentifierCreate,
     UserOrgIdentifierResponse,
+    UserOrgIdentifierUpdate,
 )
 
 from app.models.user import User
@@ -327,3 +328,35 @@ def add_user_org_identifier(
         org_id=data.org_id,
         identifier_value=data.identifier_value,
     )
+
+
+@router.get("/me/org-identifiers", response_model=List[UserOrgIdentifierResponse])
+def get_user_org_identifiers(
+    current_user=Depends(get_current_user),
+    service: UserOrgIdentifierService = Depends(get_user_org_identifier_service),
+):
+    return service.get_user_identifiers(user_id=current_user.get("sub"))
+
+
+@router.put("/me/org-identifiers/{identifier_id}", response_model=UserOrgIdentifierResponse)
+def update_user_org_identifier(
+    identifier_id: uuid.UUID,
+    data: UserOrgIdentifierUpdate,
+    current_user=Depends(get_current_user),
+    service: UserOrgIdentifierService = Depends(get_user_org_identifier_service),
+):
+    return service.update_identifier(
+        id=identifier_id,
+        user_id=current_user.get("sub"),
+        identifier_value=data.identifier_value,
+    )
+
+
+@router.delete("/me/org-identifiers/{identifier_id}", response_model=MessageResponse)
+def delete_user_org_identifier(
+    identifier_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    service: UserOrgIdentifierService = Depends(get_user_org_identifier_service),
+):
+    service.delete_identifier(id=identifier_id, user_id=current_user.get("sub"))
+    return {"message": "Identifier deleted successfully"}

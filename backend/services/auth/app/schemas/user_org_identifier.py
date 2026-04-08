@@ -9,6 +9,9 @@ class UserOrgIdentifierBase(BaseModel):
 class UserOrgIdentifierCreate(UserOrgIdentifierBase):
     pass
 
+class UserOrgIdentifierUpdate(BaseModel):
+    identifier_value: str
+
 class UserOrgIdentifierResponse(UserOrgIdentifierBase):
     id: uuid.UUID
     user_id: uuid.UUID

@@ -23,6 +23,32 @@ class UserOrgIdentifierService:
     def get_user_identifiers(self, user_id: uuid.UUID):
         return self.repo.get_by_user_id(user_id)
 
+    def update_identifier(self, id: uuid.UUID, user_id: uuid.UUID, identifier_value: str):
+        obj = self.repo.get_by_id(id)
+        if not obj:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Identifier not found")
+        if str(obj.user_id) != str(user_id):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this identifier")
+
+        # Check if the new identifier value is already used in the same org
+        existing = self.repo.get_by_org_and_identifier(obj.org_id, identifier_value)
+        if existing and str(existing.id) != str(id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This identifier is already linked to another account."
+            )
+
+        return self.repo.update(obj, identifier_value)
+
+    def delete_identifier(self, id: uuid.UUID, user_id: uuid.UUID):
+        obj = self.repo.get_by_id(id)
+        if not obj:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Identifier not found")
+        if str(obj.user_id) != str(user_id):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this identifier")
+
+        self.repo.delete(obj)
+
     def verify_identifiers(self, org_id: uuid.UUID, identifiers: List[str]) -> InternalVoterVerificationResponse:
         found_records = self.repo.get_by_org_and_identifiers(org_id, identifiers)
         
