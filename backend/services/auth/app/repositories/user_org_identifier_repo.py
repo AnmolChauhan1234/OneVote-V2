@@ -10,6 +10,9 @@ class UserOrgIdentifierRepository:
     def get_by_user_id(self, user_id: uuid.UUID) -> List[UserOrgIdentifier]:
         return self.db.query(UserOrgIdentifier).filter(UserOrgIdentifier.user_id == user_id).all()
 
+    def get_by_id(self, id: uuid.UUID) -> Optional[UserOrgIdentifier]:
+        return self.db.query(UserOrgIdentifier).filter(UserOrgIdentifier.id == id).first()
+
     def get_by_org_and_identifier(self, org_id: uuid.UUID, identifier_value: str) -> Optional[UserOrgIdentifier]:
         return self.db.query(UserOrgIdentifier).filter(
             UserOrgIdentifier.org_id == org_id,
@@ -29,6 +32,12 @@ class UserOrgIdentifierRepository:
             identifier_value=identifier_value
         )
         self.db.add(obj)
+        self.db.commit()
+        self.db.refresh(obj)
+        return obj
+
+    def update(self, obj: UserOrgIdentifier, identifier_value: str) -> UserOrgIdentifier:
+        obj.identifier_value = identifier_value
         self.db.commit()
         self.db.refresh(obj)
         return obj
