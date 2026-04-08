@@ -8,7 +8,17 @@ export const API_URLS = {
     REFRESH_TOKEN: "/auth/refresh", // post
     GENERATE_OTP: "/auth/generate-otp", // post
     VERIFY_OTP: "/auth/verify-otp", // post
+
+    
+  },
+
+  USER_ORG: {
     ADD_ORG_IDS: "/auth/me/org-identifiers", // post
+    GET_ORG_IDS: "/auth/me/org-identifiers", // get
+    UPDATE_ORG_IDENTIFIER: "/auth/me/org-identifiers", // patch
+    // "/auth/me/org-identifiers/{identifier_id}"
+    DELETE_ORG_IDENTIFIER: "/auth/me/org-identifiers", // delete
+    // "/auth/me/org-identifiers/{identifier_id}"
   },
 
   ADMIN: {
