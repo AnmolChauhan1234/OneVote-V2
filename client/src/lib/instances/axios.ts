@@ -8,8 +8,13 @@ import { refreshToken } from "../utils/refreshToken";
 import { handleError } from "../utils/handleError";
 import { AppError } from "../errors/AppError";
 import { logger } from "../utils/logger";
+import getCookie from "../utils/getCookie";
+
+import { STATUSCODES } from "@/constants/statusCode";
+import { queryClient } from "./queryClient";
 
 let isRefreshing = false;
+let isLoggingOut = false;
 
 let failedQueue: {
   resolve: (value?: unknown) => void;
@@ -27,14 +32,6 @@ function processQueue(error: unknown) {
   failedQueue = [];
 }
 
-// HELPER TO GET COOKIE
-function getCookie(name: string) {
-  return document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(name + "="))
-    ?.split("=")[1];
-}
-
 const axiosClient: AxiosInstance = axios.create({
   baseURL: "/api/v1",
   withCredentials: true,
@@ -44,10 +41,7 @@ const axiosClient: AxiosInstance = axios.create({
 axiosClient.interceptors.request.use((config) => {
   const methodsRequiringCSRF = ["post", "put", "patch", "delete"];
 
-  logger.debug(
-    `→ ${config.method?.toUpperCase()} ${config.url}`,
-    config.data
-  );
+  logger.debug(`→ ${config.method?.toUpperCase()} ${config.url}`, config.data);
 
   if (methodsRequiringCSRF.includes(config.method || "")) {
     const csrfToken = getCookie("csrf_token");
@@ -60,7 +54,11 @@ axiosClient.interceptors.request.use((config) => {
         url: config.url,
       });
       return Promise.reject(
-        new AppError("CSRF token missing", 403, "CSRF_MISSING")
+        new AppError(
+          "CSRF token missing",
+          STATUSCODES.FORBIDDEN,
+          "CSRF_MISSING",
+        ),
       );
     }
   }
@@ -75,21 +73,21 @@ axiosClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest =
-      error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
     logger.error(
       `← ${error.response?.status} ${originalRequest?.url}`,
-      error.response?.data
+      error.response?.data,
     );
 
     // 401 — attempt token refresh (ONLY ONCE)
     if (error.response?.status === 401 && !originalRequest?._retry) {
       if (isRefreshing) {
-        logger.debug(
-          "401 — refresh already in progress, queuing request",
-          { url: originalRequest?.url }
-        );
+        logger.debug("401 — refresh already in progress, queuing request", {
+          url: originalRequest?.url,
+        });
 
         return new Promise((resolve, reject) => {
           failedQueue.push({
@@ -107,30 +105,42 @@ axiosClient.interceptors.response.use(
       try {
         await refreshToken();
 
-        logger.info(
-          "Token refresh successful — retrying queued requests"
-        );
+        logger.info("Token refresh successful — retrying queued requests");
 
         processQueue(null);
         return axiosClient(originalRequest);
       } catch (refreshError) {
-        logger.error(
-          "Token refresh failed — clearing queue, redirecting to login",
-          refreshError
-        );
+        logger.error("Token refresh failed — forcing logout", refreshError);
 
         processQueue(refreshError);
-        handleError(refreshError);
+
+        if (!isLoggingOut) {
+          isLoggingOut = true;
+
+          //clear client state
+          queryClient.clear();
+
+          //est-effort server logout (clears cookies)
+          try {
+            await fetch("/api/v1/auth/logout", {
+              method: "POST",
+              credentials: "include",
+            });
+          } catch {
+            // ignore failure — we still force logout
+          }
+
+          //hard redirect
+          window.location.href = "/login";
+        }
 
         return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
       }
     }
 
     handleError(error);
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosClient;

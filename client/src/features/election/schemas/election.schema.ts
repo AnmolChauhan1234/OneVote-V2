@@ -1,19 +1,19 @@
 import { z } from "zod";
 
 export const electionCreateSchema = z.object({
-  org_id: z.string().uuid(),
+  org_id: z.uuid(),
   title: z.string().max(255),
   description: z.string().optional(),
-  start_date: z.string().datetime(),
-  end_date: z.string().datetime(),
+  start_date: z.string(),
+  end_date: z.string(),
 });
 export type ElectionCreateFormData = z.infer<typeof electionCreateSchema>;
 
 export const electionUpdateSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
-  start_date: z.string().datetime().optional(),
-  end_date: z.string().datetime().optional(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
   status: z.enum(["UPCOMING", "ACTIVE", "COMPLETED", "CANCELLED"]).optional(),
 });
 export type ElectionUpdateFormData = z.infer<typeof electionUpdateSchema>;

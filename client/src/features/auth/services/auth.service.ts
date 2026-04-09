@@ -45,3 +45,8 @@ export async function getCurrentUser(): Promise<User> {
   const res = await axiosClient.get<User>(API_URLS.AUTH.ME);
   return res.data;
 }
+
+// REFRESH TOKEN
+export async function refreshUserToken(): Promise<void> {
+  await axiosClient.post(API_URLS.AUTH.REFRESH_TOKEN);
+}

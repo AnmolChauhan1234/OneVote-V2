@@ -105,7 +105,16 @@ export const queryKeys = {
   },
 
   // ----------------------------------------------------------------
+  // NOTIFICATION
+  // GET /notification/
+  // ----------------------------------------------------------------
+  notification: {
+    all: ["notifications"] as const,
+  },
+
+  // ----------------------------------------------------------------
   // BIOMETRIC   — all mutations (enroll, verify, liveness)
+
   // TOKEN       — all mutations (generate-voting-token)
   // AUTH OTP    — all mutations (generate-otp, verify-otp)
   // No query keys needed for any of the above

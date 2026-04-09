@@ -110,6 +110,11 @@ export const API_URLS = {
 
   TOKEN: {
     GENERATE_VOTING_TOKEN: "/token/generate-token", // post
-  }
+  },
+
+  NOTIFICATION: {
+    GET_NOTIFICATIONS: "/notification/", // get
+  },
+
 
 } as const;

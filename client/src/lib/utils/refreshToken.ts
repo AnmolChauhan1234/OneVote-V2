@@ -1,6 +1,20 @@
-import axiosClient from '../instances/axios';
-import apiCaller from '../apiCaller';
+import axios from "axios";
+
+import getCookie from "./getCookie";
 
 export async function refreshToken() {
-  await apiCaller.post('/auth/token/refresh');
+  const csrfToken = getCookie("csrf_token");
+
+  const response = await axios.post(
+    "/api/v1/auth/refresh",
+    {},
+    {
+      withCredentials: true,
+      headers: {
+        "X-CSRF-Token": csrfToken || "",
+      },
+    }
+  );
+
+  return response.data;
 }

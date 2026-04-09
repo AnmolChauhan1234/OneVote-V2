@@ -1,11 +1,10 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { notificationService } from '../services/notification.service';
+import { queryKeys } from '@/constants/queryKeys';
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { getNotifications } from '../services/notification.service';
 
+// USE NOTIFICATIONS LIST
 export function useNotifications() {
-  return useQuery({
-    queryKey: ['notifications'],
-    queryFn: notificationService.getNotifications,
-  });
+  return useApiQuery(queryKeys.notification.all, getNotifications);
 }

@@ -1,8 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/instances/queryClient";
-import { AppError } from "@/lib/errors/AppError";
 
 import {
   createAdmin,
@@ -11,46 +9,42 @@ import {
   blockUser,
   suspendUser,
   deleteUser,
+  getOrgDocuments,
+  listPendingOrgs,
+  approveOrg,
+  rejectOrg,
 } from "../services/admin.service";
 
-import { AdminCreateFormData } from "../schemas/admin.schema";
-import {
-  BlockUserResponse,
-  CreateAdminResponse,
-  ListAllAdminResponse,
-  ListAllUserAdminResponse,
-  SuspendUserResponse,
-  DeleteUserResponse,
-} from "../types/types";
 
 import { queryKeys } from "@/constants/queryKeys";
+import { useApiMutation } from "@/hooks/useApiMutation";
+import { useApiQuery } from "@/hooks/useApiQuery";
+
+import {
+  ApproveOrganisationFormData,
+  RejectOrganisationFormData,
+} from "../../organisation/schemas/organisation.schema";
+
 
 export function useCreateAdmin() {
-  return useMutation<CreateAdminResponse, AppError, AdminCreateFormData>({
-    mutationFn: createAdmin,
+
+  return useApiMutation(createAdmin, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.admins });
-    },
-  });
+    }
+  })
 }
 
 export function useAdmins() {
-  return useQuery<ListAllAdminResponse, AppError, void>({
-    queryKey: queryKeys.admin.admins,
-    queryFn: listAllAdims,
-  });
+  return useApiQuery(queryKeys.admin.admins, listAllAdims);
 }
 
 export function useAllUsers() {
-  return useQuery<ListAllUserAdminResponse, AppError, void>({
-    queryKey: queryKeys.admin.users,
-    queryFn: getAllUsers,
-  });
+  return useApiQuery(queryKeys.admin.users, getAllUsers);
 }
 
 export function useBlockUser() {
-  return useMutation<BlockUserResponse, AppError, string>({
-    mutationFn: blockUser,
+  return useApiMutation(blockUser, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.users });
     },
@@ -58,8 +52,7 @@ export function useBlockUser() {
 }
 
 export function useSuspendUser() {
-  return useMutation<SuspendUserResponse, AppError, string>({
-    mutationFn: suspendUser,
+  return useApiMutation(suspendUser, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.users });
     },
@@ -67,10 +60,44 @@ export function useSuspendUser() {
 }
 
 export function useDeleteUser() {
-  return useMutation<DeleteUserResponse, AppError, string>({
-    mutationFn: deleteUser,
+  return useApiMutation(deleteUser, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.users });
     },
   });
 }
+
+export function useOrgDocuments(org_id: string) {
+  return useApiQuery(queryKeys.admin.orgDocuments(org_id), () =>
+    getOrgDocuments(org_id),
+  );
+}
+
+export function usePendingOrgs() {
+  return useApiQuery(queryKeys.admin.pendingOrgs, listPendingOrgs);
+}
+
+export function useApproveOrg() {
+  return useApiMutation(
+    ({ org_id, payload }: { org_id: string; payload: ApproveOrganisationFormData }) =>
+      approveOrg(org_id, payload),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.admin.pendingOrgs });
+      },
+    },
+  );
+}
+
+export function useRejectOrg() {
+  return useApiMutation(
+    ({ org_id, payload }: { org_id: string; payload: RejectOrganisationFormData }) =>
+      rejectOrg(org_id, payload),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.admin.pendingOrgs });
+      },
+    },
+  );
+}
+

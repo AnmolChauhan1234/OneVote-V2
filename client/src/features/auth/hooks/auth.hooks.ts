@@ -1,63 +1,57 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { queryClient } from "@/lib/instances/queryClient";
-import { AppError } from "@/lib/errors/AppError";
 
-import { User } from "@/types";
-import { LoginResponse, LogoutResponse, RegisterResponse } from "../types/types";
-import { LoginFormData, RegisterFormData } from "../schemas/user.schema";
-
-import { getCurrentUser, loginUser, registerUser, logoutUser } from "../services/auth.service";
+import {
+  getCurrentUser,
+  loginUser,
+  registerUser,
+  logoutUser,
+  refreshUserToken,
+} from "../services/auth.service";
 
 import { queryKeys } from "@/constants/queryKeys";
+import { useApiMutation } from "@/hooks/useApiMutation";
+import { useApiQuery } from "@/hooks/useApiQuery";
 
 export function useLogin() {
   const router = useRouter();
 
-  return useMutation<LoginResponse, AppError, LoginFormData>({
-    mutationFn: loginUser,
+  return useApiMutation(loginUser, {
     onSuccess: async () => {
       await queryClient.fetchQuery({
         queryKey: queryKeys.auth.me,
         queryFn: getCurrentUser,
       });
-      router.push("/dashboard");
+      router.replace("/dashboard");
     },
   });
 }
 
 export function useRegister() {
   const router = useRouter();
-  return useMutation<RegisterResponse, AppError, RegisterFormData>({
-    mutationFn: registerUser,
-    onSuccess: () => {
-      router.push("/dashboard");
-    },
+
+  return useApiMutation(registerUser, {
+    onSuccess: () => router.replace("/login"),
   });
 }
 
 export function useLogout() {
   const router = useRouter();
 
-  return useMutation<LogoutResponse, AppError, void>({
-    mutationFn: logoutUser,
+  return useApiMutation(logoutUser, {
     onSuccess: () => {
       queryClient.clear();
-      router.push("/");
+      router.replace("/");
     },
   });
 }
 
 export function useMe() {
-  return useQuery<User, AppError, void>({
-    queryKey: queryKeys.auth.me,
-    queryFn: getCurrentUser,
-  });
+  return useApiQuery(queryKeys.auth.me, getCurrentUser);
 }
-
 
 // ----------------------------------------------------------------
 // useSession
@@ -66,10 +60,13 @@ export function useMe() {
 // Use this for quick role checks in components, not for profile data
 // ----------------------------------------------------------------
 export function useSession() {
-  return useQuery<User, AppError, void>({
-    queryKey: queryKeys.auth.session,
-    queryFn: getCurrentUser,    // fallback if cache somehow empty
-    staleTime: Infinity,        // session doesn't go stale mid-use
+  return useApiQuery(queryKeys.auth.session, getCurrentUser, {
+    staleTime: Infinity,
     retry: false,
-  })
+  });
 }
+
+export function useRefreshToken() {
+  return useApiMutation(refreshUserToken);
+}
+

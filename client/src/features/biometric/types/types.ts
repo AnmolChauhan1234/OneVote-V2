@@ -14,3 +14,8 @@ export interface LivenessCheckResponse {
   liveness_score: number;
   message: string;
 }
+
+
+export interface CameraProps {
+  onCapture: (file: File) => void
+}

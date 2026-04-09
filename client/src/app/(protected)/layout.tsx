@@ -1,22 +1,37 @@
-import { redirect } from 'next/navigation';
-import { getMeServer } from '@/lib/auth.server';
-import { Header } from '@/components/ui/Header';
+import { redirect } from "next/navigation";
+import { getMeServer } from "@/lib/ssr/auth.server";
+import { Header } from "@/components/ui/Header";
+
+import { QueryClient, dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { queryKeys } from "@/constants/queryKeys";
 
 export default async function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getMeServer();
-  if (!user) {
-    redirect('/login');
+  const queryClient = new QueryClient();
+
+  try {
+    // Prefetch user on server
+    const user = await queryClient.fetchQuery({
+      queryKey: queryKeys.auth.me,
+      queryFn: getMeServer,
+    });
+
+    if (!user) {
+      redirect("/login");
+    }
+  } catch {
+    redirect("/login");
   }
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1">
-        {children}
-      </main>
-    </div>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <div className="flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1">{children}</main>
+      </div>
+    </HydrationBoundary>
   );
 }
