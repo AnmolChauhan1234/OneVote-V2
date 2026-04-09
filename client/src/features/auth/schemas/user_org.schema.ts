@@ -12,4 +12,9 @@ export type UserOrgIdentifierCreateFormData = z.infer<typeof userOrgIdentifierCr
 export const userOrgIdentifierUpdateSchema = z.object({
   identifier_value: z.string(),
 });
-export type UserOrgIdentifierUpdateFormData = z.infer<typeof userOrgIdentifierCreateSchema>;
+export type UserOrgIdentifierUpdateFormData = z.infer<typeof userOrgIdentifierUpdateSchema>;
+
+export interface UpdateUserOrgIdentifierArgs {
+  identifier_id: string;
+  payload: UserOrgIdentifierUpdateFormData;
+}
