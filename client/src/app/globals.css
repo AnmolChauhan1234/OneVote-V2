@@ -1,26 +1,106 @@
 @import "tailwindcss";
 
+/* =========================
+   🎨 DESIGN TOKENS
+========================= */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base */
+  --bg: #ffffff;
+  --bg-soft: #f8fafc;
+
+  /* Text */
+  --text-primary: #0a0a0a;
+  --text-secondary: #525252;
+  --text-muted: #a3a3a3;
+
+  /* Border */
+  --border: #e5e5e5;
+
+  /* Accent */
+  --primary: #111111;
+  --inverse: #ffffff;
+
+  /* Radius */
+  --radius: 4px;
+
+  /* Font */
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-poppins);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* =========================
+   🌍 BASE
+========================= */
+@layer base {
+  * {
+    border-color: var(--border); /* ✅ FIXED */
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    @apply antialiased;
+  }
+
+  h1 {
+    @apply text-4xl font-medium tracking-tight;
+  }
+
+  h2 {
+    @apply text-3xl font-medium;
+  }
+
+  h3 {
+    @apply text-xl font-medium;
+  }
+
+  p {
+    color: var(--text-secondary);
+  }
+
+  button {
+    letter-spacing: 0.2em;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* =========================
+   🧩 COMPONENTS
+========================= */
+@layer components {
+  .btn-base {
+    @apply inline-flex items-center justify-center gap-3 px-6 py-3 text-sm uppercase;
+    @apply transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)];
+    @apply overflow-hidden relative;
+  }
+
+  .btn-dark {
+    background: #0a0a0a;
+    color: white;
+  }
+
+  .btn-light {
+    background: white;
+    color: black;
+    border: 1px solid var(--border);
+  }
+
+  .btn-outline {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: black;
+  }
+}
+
+/* =========================
+   ⚡ UTILITIES
+========================= */
+@layer utilities {
+  .text-muted {
+    color: var(--text-muted);
+  }
+
+  .bg-soft {
+    background: var(--bg-soft);
+  }
 }
