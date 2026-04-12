@@ -12,7 +12,10 @@ type Props = {
 } & HTMLMotionProps<"button">;
 
 export const PrimaryButton = React.forwardRef<HTMLButtonElement, Props>(
-  ({ className, variant = "dark", children, startIcon, ...props }, ref) => {
+  (
+    { className, variant = "dark", children, startIcon, disabled, ...props },
+    ref,
+  ) => {
     const isDark = variant === "dark";
 
     // Colors for better visibility in both themes
@@ -25,13 +28,15 @@ export const PrimaryButton = React.forwardRef<HTMLButtonElement, Props>(
       <motion.button
         ref={ref}
         initial="rest"
-        whileHover="hover"
+        whileHover={disabled ? undefined : "hover"}
         animate="rest"
+        disabled={disabled}
         className={cn(
-          "relative overflow-hidden px-8 py-3.5 text-[11px] uppercase font-medium flex items-center gap-3 rounded-none",
+          "relative overflow-hidden px-8 py-3.5 text-[11px] uppercase font-medium flex items-center justify-center gap-3 rounded-none",
           "tracking-[0.2em] font-['Poppins','Inter',system-ui,sans-serif] cursor-pointer",
           "transition-all duration-300",
           isDark ? "bg-black text-white" : "bg-white text-black border",
+          disabled && "opacity-50 cursor-not-allowed",
           className,
         )}
         {...props}
@@ -187,12 +192,11 @@ export const PrimaryButton = React.forwardRef<HTMLButtonElement, Props>(
           }}
           transition={{ duration: 0.7, ease: "easeInOut", delay: 0.1 }}
           className={cn(
-            "absolute inset-0 w-full h-full bg-gradient-to-r",
+            "absolute inset-0 w-full h-full bg-gradient-to-r pointer-events-none",
             isDark
               ? "from-transparent via-white to-transparent"
               : "from-transparent via-black to-transparent",
           )}
-          style={{ pointerEvents: "none" }}
         />
 
         {/* Subtle Border Animation */}
