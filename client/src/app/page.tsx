@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import BottomHeader from "@/components/ui/Header";
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +37,8 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+      <BottomHeader />
+
       {/* SMALL LABEL */}
       <p className="text-xs uppercase tracking-[0.3em] text-muted mb-6">
         ◆ ABOUT ONE VOTE
