@@ -2,34 +2,39 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, User, LogIn } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Menu, X, User, LogIn, Diamond } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
+import { ROUTES } from "@/constants/routes";
+import { useLogout, useMe } from "@/features/auth/hooks";
 
 // Menu items configuration
 const MENU_ITEMS = [
-  { name: "About", path: "/about" },
-  { name: "Collection", path: "/collection" },
-  { name: "Projects", path: "/projects" },
-  { name: "Approach", path: "/approach" },
-  { name: "Contact", path: "/contact" },
+  { name: "About", path: "/login" },
+  { name: "Dashboard", path: ROUTES.DASHBOARD.PROTECTED },
+  { name: "Projects", path: "/login" },
+  { name: "Approach", path: "/login" },
+  { name: "Contact", path: "/login" },
 ] as const;
 
 export default function BottomHeader() {
-  // User state (can be moved to a global store)
-  const user = false; // Change to false to see login/signup
+  const { data: user } = useMe();
+  const { mutate: logout } = useLogout();
+
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
-  // Close menu when scrolling outside
+  // Explicitly close menu on route change (handles browser back/forward)
   useEffect(() => {
-    const handleScroll = () => {
-      if (open) setOpen(false);
-    };
+    setOpen(false);
+  }, [pathname]);
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [open]);
+  // HANDLE LOGOUT
+  const handleLogout = () => {
+    logout();
+    setOpen(false);
+  };
 
   // Prevent body scroll when menu is open
   useEffect(() => {
@@ -63,51 +68,53 @@ export default function BottomHeader() {
     <>
       {/* 🔥 FLOATING HEADER (BOTTOM CENTER) - HIDDEN WHEN MENU OPEN */}
       {!open && (
-        <motion.div
-          initial={false}
-          animate="closed"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] sm:w-auto px-4 sm:px-0"
-        >
+        <motion.div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] sm:w-auto px-4 sm:px-0">
           <motion.div
             layout
-            className="flex items-center justify-between gap-6 sm:gap-10 px-4 sm:px-8 py-3 bg-black/90 backdrop-blur-md text-white shadow-lg cursor-pointer"
+            className="grid grid-cols-3 items-center px-4 sm:px-8 py-3 bg-black/90 backdrop-blur-md text-white shadow-lg"
             style={{ width: "280px" }}
           >
-            {/* Logo - Click to go home */}
-            <div
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="flex items-center gap-2 text-sm font-medium tracking-wide cursor-pointer hover:opacity-70 transition"
-            >
-              <div className="w-6 h-6 border border-white/40 flex items-center justify-center">
-                ⬡
+            {/* LEFT — LOGO */}
+            <div className="flex justify-start">
+              <div
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                className="flex items-center gap-2 text-sm font-medium tracking-wide cursor-pointer hover:opacity-70 transition"
+              >
+                <div className="w-6 h-6 flex items-center justify-center">
+                  <Diamond />
+                </div>
               </div>
             </div>
 
-            {/* Center - Home */}
-            <div
-              onClick={() => router.push("/")}
-              className="text-xs tracking-[0.25em] uppercase opacity-80 cursor-pointer hover:opacity-100 transition"
-            >
-              Home
+            {/* CENTER — HOME */}
+            <div className="flex justify-center">
+              <div
+                onClick={() => router.push("/")}
+                className="text-xs tracking-[0.25em] uppercase opacity-80 cursor-pointer hover:opacity-100 transition"
+              >
+                Home
+              </div>
             </div>
 
-            {/* Menu Button - 3 hamburger lines */}
-            <button
-              onClick={() => setOpen(true)}
-              className="flex flex-col gap-1.5 cursor-pointer group"
-            >
-              <span className="w-5 h-[1px] bg-white transition group-hover:w-6" />
-              <span className="w-5 h-[1px] bg-white transition group-hover:w-6" />
-              <span className="w-5 h-[1px] bg-white transition group-hover:w-6" />
-            </button>
+            {/* RIGHT — MENU */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => setOpen(true)}
+                className="flex flex-col gap-1.5 cursor-pointer group px-2 py-1 rounded-sm transition-all duration-200 ease-out hover:scale-105 hover:bg-white/5"
+              >
+                <span className="w-5 h-px bg-white transition-all duration-200 group-hover:w-6 opacity-90" />
+                <span className="w-5 h-px bg-white transition-all duration-200 group-hover:w-4 opacity-70" />
+                <span className="w-5 h-px bg-white transition-all duration-200 group-hover:w-6 opacity-90" />
+              </button>
+            </div>
           </motion.div>
         </motion.div>
       )}
 
-      {/* 🔥 MENU OVERLAY */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {open && (
           <motion.div
+            key="menu-overlay-container"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -184,18 +191,22 @@ export default function BottomHeader() {
                     variant="dark"
                     className="w-full py-3 text-sm"
                     onClick={() => {
-                      setOpen(false);
-                      router.push(user ? "/dashboard" : "/login");
+                      if (user) {
+                        handleLogout();
+                      } else {
+                        setOpen(false);
+                        router.push("/login");
+                      }
                     }}
                   >
                     {user ? (
                       <span className="flex items-center justify-center gap-2 whitespace-nowrap">
-                        <User size={14} />
-                        Dashboard
+                        {/* <User size={14} /> */}
+                        Logout
                       </span>
                     ) : (
                       <span className="flex items-center justify-center gap-2 whitespace-nowrap">
-                        <LogIn size={14} />
+                        {/* <LogIn size={14} /> */}
                         Login / Signup
                       </span>
                     )}

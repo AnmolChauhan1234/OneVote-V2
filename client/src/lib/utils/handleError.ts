@@ -1,3 +1,4 @@
+import { logger } from "./logger";
 import { toast } from "sonner";
 import { normalizeError } from "../errors/normaliseError";
 import { ERROR_CODES } from "@/constants/errorCodes";
@@ -5,7 +6,10 @@ import { ERROR_CODES } from "@/constants/errorCodes";
 export function handleError(error: unknown): void {
   const appError = normalizeError(error);
 
-  console.error("Error:", error);
+  logger.error(appError.message, {
+    originalError: error,
+    code: appError.code,
+  });
 
   // Auth handling
   if (appError.code === ERROR_CODES.UNAUTHORIZED) {

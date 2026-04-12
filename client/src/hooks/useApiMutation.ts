@@ -10,7 +10,7 @@ type ApiMutationOptions<TData, TVariables> = UseMutationOptions<
   showSuccessToast?: boolean;
 };
 
-export function useApiMutation<TData = unknown, TVariables = unknown>(
+export function useApiMutation<TData = unknown, TVariables = void>(
   mutationFn: (variables: TVariables) => Promise<TData>,
   options?: ApiMutationOptions<TData, TVariables>,
 ) {

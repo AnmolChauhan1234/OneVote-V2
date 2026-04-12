@@ -2,7 +2,7 @@ import { LogEntry } from "@/types/logger.type";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
-const isDev = process.env.NEXT_ENV === "development";
+const isDev = process.env.NODE_ENV === "development";
 
 // ─── ANSI escape helpers ───────────────────────────────────────────────────────
 const ANSI = {
@@ -74,11 +74,12 @@ const logToTerminal = (level: LogLevel, entry: LogEntry, data?: unknown) => {
 
   const line = `${badge} ${timestamp} ${msg}`;
 
-  const consoleFn =
+  const consoleFn = (
     level === "debug" ? console.debug
     : level === "info"  ? console.info
     : level === "warn"  ? console.warn
-    : console.error;
+    : console.error
+  ).bind(console);
 
   if (data !== undefined) {
     consoleFn(`${PAD}\n${line}\n`, "\n          ", data, `\n${PAD}`);
@@ -92,17 +93,19 @@ const logToBrowser = (level: LogLevel, entry: LogEntry, data?: unknown) => {
   const time  = shortTime(entry.timestamp);
   const label = level.toUpperCase();
 
-  const consoleFn =
+  const consoleFn = (
     level === "debug" ? console.debug
     : level === "info"  ? console.info
     : level === "warn"  ? console.warn
-    : console.error;
+    : console.error
+  ).bind(console);
 
   consoleFn(
-    `%c ${label} %c ${time} — ${entry.message}`,
+    `%c ${label} %c ${time} —`,
     style,
     "color:inherit",
-    data ?? ""
+    entry.message,
+    data !== undefined ? data : ""
   );
 };
 
