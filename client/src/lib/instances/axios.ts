@@ -49,18 +49,19 @@ axiosClient.interceptors.request.use((config) => {
     if (csrfToken) {
       config.headers["X-CSRF-Token"] = csrfToken;
       logger.debug("CSRF token injected", { url: config.url });
-    } else {
-      logger.error("CSRF token missing — blocking request", {
-        url: config.url,
-      });
-      return Promise.reject(
-        new AppError(
-          "CSRF token missing",
-          STATUSCODES.FORBIDDEN,
-          "CSRF_MISSING",
-        ),
-      );
     }
+    // else {
+    //   logger.error("CSRF token missing — blocking request", {
+    //     url: config.url,
+    //   });
+    //   return Promise.reject(
+    //     new AppError(
+    //       "CSRF token missing",
+    //       STATUSCODES.FORBIDDEN,
+    //       "CSRF_MISSING",
+    //     ),
+    //   );
+    // }
   }
 
   return config;
@@ -135,6 +136,8 @@ axiosClient.interceptors.response.use(
         }
 
         return Promise.reject(refreshError);
+      }finally{
+        isRefreshing = false;
       }
     }
 
