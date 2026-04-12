@@ -11,6 +11,8 @@ export function handleError(error: unknown): void {
     code: appError.code,
   });
 
+  // console.error(appError.message);
+
   // Auth handling
   if (appError.code === ERROR_CODES.UNAUTHORIZED) {
     toast.error("Session expired. Please login again.");

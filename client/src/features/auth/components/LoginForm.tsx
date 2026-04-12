@@ -1,20 +1,21 @@
-'use client';
+"use client";
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Mail, Lock } from 'lucide-react';
-import Link from 'next/link';
-import { z } from 'zod';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail, Lock } from "lucide-react";
+import Link from "next/link";
+import { z } from "zod";
 
-import { loginSchema } from '@/features/auth/schemas';
-import { useLogin } from '@/features/auth/hooks';
-import { Input } from '@/components/ui/input';
-import { PrimaryButton } from '@/components/buttons/PrimaryButton';
+import { loginSchema } from "@/features/auth/schemas";
+import { useLogin } from "@/features/auth/hooks";
+import { Input } from "@/components/ui/input";
+import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 
 type FormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const { mutate, isPending } = useLogin();
+  const { mutate: login, isPending } = useLogin();
+
   const {
     register,
     handleSubmit,
@@ -24,14 +25,17 @@ export function LoginForm() {
   });
 
   const onSubmit = (data: FormData) => {
-    mutate(data);
+    login(data);
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full max-w-sm">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6 w-full max-w-sm"
+    >
       <div className="space-y-4">
         <Input
-          {...register('email')}
+          {...register("email")}
           label="Email Address"
           placeholder="Enter your email"
           icon={<Mail size={16} />}
@@ -42,7 +46,7 @@ export function LoginForm() {
         <div className="space-y-1">
           <Input
             type="password"
-            {...register('password')}
+            {...register("password")}
             label="Password"
             placeholder="••••••••"
             icon={<Lock size={16} />}
@@ -50,8 +54,8 @@ export function LoginForm() {
             error={errors.password?.message}
           />
           <div className="flex justify-end">
-            <Link 
-              href="/forgot-password" 
+            <Link
+              href="/forgot-password"
               className="text-[10px] uppercase tracking-wider text-black/50 hover:text-black transition-colors"
             >
               Forgot Password?
@@ -60,17 +64,16 @@ export function LoginForm() {
         </div>
       </div>
 
-      <PrimaryButton 
-        type="submit" 
-        className="w-full mt-2" 
-        disabled={isPending}
-      >
-        {isPending ? 'Signing In...' : 'Sign In'}
+      <PrimaryButton type="submit" className="w-full mt-2" disabled={isPending}>
+        {isPending ? "Signing In..." : "Sign In"}
       </PrimaryButton>
 
       <p className="text-center text-[10px] uppercase tracking-[0.2em] text-black/50">
-        Don't have an account?{' '}
-        <Link href="/register" className="text-black font-semibold hover:underline">
+        Don't have an account?{" "}
+        <Link
+          href="/register"
+          className="text-black font-semibold hover:underline"
+        >
           Register
         </Link>
       </p>
