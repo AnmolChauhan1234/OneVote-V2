@@ -5,8 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema } from '../schemas';
 import { useLogin } from '../hooks';
 import { Loader } from '@/components/ui/Loader';
-import { Button } from '@/components/ui/button'; // shadcn placeholder
-import { Input } from '@/components/ui/input'; // shadcn placeholder
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { z } from 'zod';
 
 type FormData = z.infer<typeof loginSchema>;
 
