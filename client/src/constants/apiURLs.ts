@@ -33,13 +33,13 @@ export const API_URLS = {
     DELETE_USER: "/admin/users", // delete
     // "/admin/users/{user_id}"
 
-    GET_ORG_DOCUMENTS: "/admin/organizations", // get
-    // "/admin/organizations/{org_id}/documents"
-    LIST_PENDING_ORGS: "/admin/organizations", // get
-    APPROVE_ORG: "/admin/organizations", // post
-    // "/admin/organizations/{org_id}/approve"
-    REJECT_ORG: "/admin/organizations", // post
-    // "/admin/organizations/{org_id}/reject"
+    GET_ORG_DOCUMENTS: "/admin/organisation", // get
+    // "/admin/organisation/{org_id}/documents"
+    LIST_PENDING_ORGS: "/admin/organisation", // get
+    APPROVE_ORG: "/admin/organisation", // post
+    // "/admin/organisation/{org_id}/approve"
+    REJECT_ORG: "/admin/organisation", // post
+    // "/admin/organisation/{org_id}/reject"
 
   },
 
@@ -85,19 +85,19 @@ export const API_URLS = {
   },
 
   ORGANISATION: {
-    CREATE_ORG: "/organizations", // post
-    // "/organizations/"
-    LIST_ORGS: "/organizations", // get
-    // "/organizations/"
+    CREATE_ORG: "/organisation", // post
+    // "/organisation/"
+    LIST_ORGS: "/organisation", // get
+    // "/organisation/"
     
-    GET_ORG: "/organizations", // get
-    // "/organizations/{org_id}"
-    UPDATE_ORG: "/organizations", // put
-    // "/organizations/{org_id}"
-    UPDATE_ORG_DOCUMENTS: "/organizations", // put
-    // "/organizations/{org_id}/documents"
-    DELETE_ORG: "/organizations", // delete
-    // "/organizations/{org_id}"
+    GET_ORG: "/organisation", // get
+    // "/organisation/{org_id}"
+    UPDATE_ORG: "/organisation", // put
+    // "/organisation/{org_id}"
+    UPDATE_ORG_DOCUMENTS: "/organisation", // put
+    // "/organisation/{org_id}/documents"
+    DELETE_ORG: "/organisation", // delete
+    // "/organisation/{org_id}"
   },
 
 

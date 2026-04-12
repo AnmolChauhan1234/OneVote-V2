@@ -59,7 +59,7 @@ class UserResponse(BaseModel):
     role: UserRole
     user_type: UserType
     org_ids: List[uuid.UUID] = Field(default_factory=list)
-    phone_number: str
+    phone_number: Optional[str] = None
     created_at: datetime
     # updated_at: datetime
 

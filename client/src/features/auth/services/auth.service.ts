@@ -12,31 +12,29 @@ import {
 
 // LOGIN USER
 export async function loginUser(
-  credentials: LoginFormData
+  credentials: LoginFormData,
 ): Promise<LoginResponse> {
   const res = await axiosClient.post<LoginResponse>(
     API_URLS.AUTH.LOGIN,
-    credentials
+    credentials,
   );
   return res.data;
 }
 
 // REGISTER USER
 export async function registerUser(
-  payload: RegisterFormData
+  payload: RegisterFormData,
 ): Promise<RegisterResponse> {
   const res = await axiosClient.post<RegisterResponse>(
     API_URLS.AUTH.REGISTER,
-    payload
+    payload,
   );
   return res.data;
 }
 
 // LOGOUT USER
 export async function logoutUser(): Promise<LogoutResponse> {
-  const res = await axiosClient.post<LogoutResponse>(
-    API_URLS.AUTH.LOGOUT
-  );
+  const res = await axiosClient.post<LogoutResponse>(API_URLS.AUTH.LOGOUT);
   return res.data;
 }
 
@@ -46,7 +44,7 @@ export async function getCurrentUser(): Promise<User> {
   return res.data;
 }
 
-// REFRESH TOKEN
-export async function refreshUserToken(): Promise<void> {
-  await axiosClient.post(API_URLS.AUTH.REFRESH_TOKEN);
-}
+// // REFRESH TOKEN
+// export async function refreshUserToken(): Promise<void> {
+//   await axiosClient.post(API_URLS.AUTH.REFRESH_TOKEN);
+// }

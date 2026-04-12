@@ -9,7 +9,6 @@ import {
   loginUser,
   registerUser,
   logoutUser,
-  refreshUserToken,
 } from "../services/auth.service";
 
 import { queryKeys } from "@/constants/queryKeys";
@@ -46,6 +45,11 @@ export function useLogout() {
       queryClient.clear();
       router.replace("/");
     },
+    onError: () => {
+      // logout failed (401 expired token) — still clear and redirect
+      queryClient.clear();
+      router.replace("/");
+    },
   });
 }
 
@@ -66,7 +70,6 @@ export function useSession() {
   });
 }
 
-export function useRefreshToken() {
-  return useApiMutation(refreshUserToken);
-}
-
+// export function useRefreshToken() {
+//   return useApiMutation(refreshUserToken);
+// }

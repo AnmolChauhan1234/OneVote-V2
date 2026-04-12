@@ -87,7 +87,12 @@ def register(
             user_id=str(user.id),
         )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        # Log the actual error for debugging
+        print(f"Registration error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Registration failed. Internal error or account already exists."
+        )
 
 
 # ---------------- LOGIN ----------------
@@ -175,7 +180,7 @@ async def login(
 
 # ---------------- REFRESH ----------------
 @router.post(
-    "/refresh", response_model=MessageResponse, dependencies=[Depends(validate_csrf)]
+    "/refresh", response_model=MessageResponse
 )
 async def refresh(
     request: Request,
@@ -237,7 +242,7 @@ async def refresh(
 
 # ---------------- LOGOUT ----------------
 @router.post(
-    "/logout", response_model=MessageResponse, dependencies=[Depends(validate_csrf)]
+    "/logout", response_model=MessageResponse
 )
 def logout(
     request: Request,

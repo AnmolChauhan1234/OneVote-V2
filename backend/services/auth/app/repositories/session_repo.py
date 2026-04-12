@@ -16,8 +16,7 @@ class SessionRepository:
             device_id=device_id
         )
         self.db.add(db_session)
-        self.db.commit()
-        self.db.refresh(db_session)
+        self.db.flush()
         return db_session
 
     def get_by_token(self, refresh_token: str) -> UserSession | None:
@@ -36,8 +35,6 @@ class SessionRepository:
 
     def delete_by_token(self, refresh_token: str):
         self.db.query(UserSession).filter(UserSession.refresh_token == refresh_token).delete()
-        self.db.commit()
 
     def delete_all_for_user(self, user_id: uuid.UUID):
         self.db.query(UserSession).filter(UserSession.user_id == user_id).delete()
-        self.db.commit()

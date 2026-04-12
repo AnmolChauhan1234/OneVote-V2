@@ -85,6 +85,11 @@ axiosClient.interceptors.response.use(
 
     // 401 — attempt token refresh (ONLY ONCE)
     if (error.response?.status === 401 && !originalRequest?._retry) {
+      const skipUrls = ["/auth/logout", "/auth/login", "/auth/signup"];
+      if (skipUrls.some((url) => originalRequest?.url?.includes(url))) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         logger.debug("401 — refresh already in progress, queuing request", {
           url: originalRequest?.url,
@@ -136,7 +141,7 @@ axiosClient.interceptors.response.use(
         }
 
         return Promise.reject(refreshError);
-      }finally{
+      } finally {
         isRefreshing = false;
       }
     }
