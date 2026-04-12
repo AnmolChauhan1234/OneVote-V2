@@ -1,8 +1,12 @@
 import { redirect } from "next/navigation";
 import { getMeServer } from "@/lib/ssr/auth.server";
-import { Header } from "@/components/ui/Header";
+import BottomHeader from "@/components/ui/Header";
 
-import { QueryClient, dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import {
+  QueryClient,
+  dehydrate,
+  HydrationBoundary,
+} from "@tanstack/react-query";
 import { queryKeys } from "@/constants/queryKeys";
 
 export default async function ProtectedLayout({
@@ -29,7 +33,7 @@ export default async function ProtectedLayout({
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <div className="flex min-h-screen flex-col">
-        <Header />
+        <BottomHeader />
         <main className="flex-1">{children}</main>
       </div>
     </HydrationBoundary>

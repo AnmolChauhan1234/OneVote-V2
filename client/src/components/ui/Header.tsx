@@ -15,10 +15,9 @@ const MENU_ITEMS = [
   { name: "Contact", path: "/contact" },
 ] as const;
 
-// User state (can be moved to a global store)
-const user = false; // Change to false to see login/signup
-
 export default function BottomHeader() {
+  // User state (can be moved to a global store)
+  const user = false; // Change to false to see login/signup
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -186,7 +185,7 @@ export default function BottomHeader() {
                     className="w-full py-3 text-sm"
                     onClick={() => {
                       setOpen(false);
-                      router.push(user ? "/dashboard" : "/auth");
+                      router.push(user ? "/dashboard" : "/login");
                     }}
                   >
                     {user ? (
