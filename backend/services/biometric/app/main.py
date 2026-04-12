@@ -8,7 +8,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-app.include_router(biometric.router, prefix="/biometric", tags=["biometric"])
+app.include_router(biometric.router, prefix="/api/v1/biometric", tags=["biometric"])
 app.include_router(internal.router, prefix="/api/v1/internal", tags=["internal"])
 
 @app.get("/health")

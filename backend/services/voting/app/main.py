@@ -11,7 +11,7 @@ app.include_router(
 
 app.include_router(
     voting_token.router,
-    prefix="/api/v1/token",
+    prefix="/api/v1/voting/token",
     tags=["Token"],
 )
 app.include_router(

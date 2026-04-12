@@ -210,7 +210,7 @@ services:
     build: ./infra/nginx
     container_name: onevote_nginx
     ports:
-      - "80:80"
+      - "8000:8000"
     depends_on:
       - auth
       - identity
