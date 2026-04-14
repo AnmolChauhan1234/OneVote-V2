@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { ROUTES } from "@/constants/routes";
 import { useLogout, useMe } from "@/features/auth/hooks";
+import path from "path";
 
 // Menu items configuration
 const MENU_ITEMS = [
@@ -15,9 +16,10 @@ const MENU_ITEMS = [
   { name: "Projects", path: "/login" },
   { name: "Approach", path: "/login" },
   { name: "Contact", path: "/login" },
+  { name: "Test", path: "/test" },
 ] as const;
 
-export default function BottomHeader() {
+export function BottomHeader() {
   const { data: user } = useMe();
   const { mutate: logout } = useLogout();
 

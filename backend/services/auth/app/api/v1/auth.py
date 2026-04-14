@@ -49,7 +49,9 @@ SECURE_COOKIE = GLOBAL_ENV == "production"
 ACCESS_TOKEN_AGE = settings.JWT_ACCESS_EXPIRY_MINUTES * 60  # in seconds
 REFRESH_TOKEN_AGE = settings.JWT_REFRESH_EXPIRY_MINUTES * 60  # in seconds
 
-ORGANISATION_SERVICE_URL = os.getenv("ORGANISATION_SERVICE_URL", "http://organisation:8000")
+ORGANISATION_SERVICE_URL = os.getenv(
+    "ORGANISATION_SERVICE_URL", "http://organisation:8000"
+)
 INTERNAL_API_KEY = settings.INTERNAL_API_KEY
 
 
@@ -62,7 +64,7 @@ async def _get_org_ids(user_id: str) -> List[uuid.UUID]:
             response = await client.get(
                 f"{ORGANISATION_SERVICE_URL}/api/v1/internal/owners/{user_id}/org",
                 headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
-                timeout=5.0
+                timeout=5.0,
             )
             if response.status_code == 200:
                 data = response.json()
@@ -86,12 +88,14 @@ def register(
             message="User registered successfully. Verification pending.",
             user_id=str(user.id),
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     except Exception as e:
-        # Log the actual error for debugging
-        print(f"Registration error: {e}")
+        print(f"Registeration failed: {e}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Registration failed. Internal error or account already exists."
+            status_code=500,
+            detail="Something went wrong while creating your account. Please try again.",
         )
 
 
@@ -106,19 +110,19 @@ async def login(
     user = user_service.get_user_by_email(login_data.email)
 
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(401, "No account found with this email")
 
     if not verify_password(login_data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(401, "Incorrect password")
 
     if not user.is_verified:
-        raise HTTPException(status_code=403, detail="User not verified")
+        raise HTTPException(403, "Please verify your email before logging in")
 
     if user.is_suspended:
-        raise HTTPException(status_code=403, detail="Account is suspended")
+        raise HTTPException(403, "Your account has been suspended. Contact support.")
 
     if user.is_blocked:
-        raise HTTPException(status_code=403, detail="Account is blocked")
+        raise HTTPException(403, "Your account is blocked due to policy violations.")
 
     try:
         # Fetch org_ids for any user who might own organizations
@@ -129,7 +133,7 @@ async def login(
             role=user.role,
             user_type=user.user_type,
             org_ids=org_ids,
-            device_id=login_data.device_id
+            device_id=login_data.device_id,
         )
 
         # 🔥 Access Token Cookie
@@ -168,7 +172,7 @@ async def login(
             "user_id": user.id,
             "role": user.role,
             "user_type": user.user_type,
-            "org_ids": org_ids
+            "org_ids": org_ids,
         }
 
     except Exception as e:
@@ -179,9 +183,7 @@ async def login(
 
 
 # ---------------- REFRESH ----------------
-@router.post(
-    "/refresh", response_model=MessageResponse
-)
+@router.post("/refresh", response_model=MessageResponse)
 async def refresh(
     request: Request,
     response: Response,
@@ -197,10 +199,11 @@ async def refresh(
         # To refresh, we need the user data to populate the new access token
         # Get user ID from refresh token (it only contains 'sub')
         from shared.core.jwt import decode_token
+
         payload = decode_token(refresh_token)
         if not payload:
-             raise HTTPException(status_code=401, detail="Invalid refresh token")
-        
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+
         user_id = payload.get("sub")
         user = user_service.get_user_by_id(uuid.UUID(user_id))
         if not user:
@@ -213,7 +216,7 @@ async def refresh(
             old_refresh_token=refresh_token,
             role=user.role,
             user_type=user.user_type,
-            org_ids=org_ids
+            org_ids=org_ids,
         )
 
         response.set_cookie(
@@ -236,34 +239,50 @@ async def refresh(
 
         return {"message": "Token refreshed"}
 
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
+    except Exception:
+        raise HTTPException(
+            status_code=401, detail="Session expired. Please login again."
+        )
 
 
 # ---------------- LOGOUT ----------------
-@router.post(
-    "/logout", response_model=MessageResponse
-)
+@router.post("/logout", response_model=MessageResponse)
 def logout(
     request: Request,
     response: Response,
-    current_user=Depends(get_current_user),
     session_service: SessionService = Depends(get_session_service),
 ):
     access_token = request.cookies.get("access_token")
+    refresh_token = request.cookies.get("refresh_token")
 
-    # 🔥 Redis blacklist (NEW)
-    if access_token:
-        redis_client.set(f"blacklist:{access_token}", "1", ex=3600)
+    try:
+        user_id = None
 
-    session_service.logout(current_user.get("sub"), access_token)
+        if access_token:
+            from shared.core.jwt import decode_token
 
-    # 🔥 Clear cookies
-    response.delete_cookie("access_token", secure=SECURE_COOKIE, samesite="lax")
-    response.delete_cookie("refresh_token", secure=SECURE_COOKIE, samesite="lax")
-    response.delete_cookie("csrf_token", secure=SECURE_COOKIE, samesite="lax")
+            payload = decode_token(access_token)
+            if payload:
+                user_id = payload.get("sub")
 
-    return {"message": "Logged out successfully"}
+        # 🔥 Always attempt logout (even if user_id missing)
+        if user_id:
+            session_service.logout(user_id, access_token)
+
+        # 🔥 Clear cookies ALWAYS
+        response.delete_cookie("access_token", secure=SECURE_COOKIE, samesite="lax")
+        response.delete_cookie("refresh_token", secure=SECURE_COOKIE, samesite="lax")
+        response.delete_cookie("csrf_token", secure=SECURE_COOKIE, samesite="lax")
+
+        return {"message": "Logged out successfully"}
+
+    except Exception as e:
+        # 🔥 NEVER fail logout
+        response.delete_cookie("access_token", secure=SECURE_COOKIE, samesite="lax")
+        response.delete_cookie("refresh_token", secure=SECURE_COOKIE, samesite="lax")
+        response.delete_cookie("csrf_token", secure=SECURE_COOKIE, samesite="lax")
+
+        return {"message": "Logged out (cleanup forced)"}
 
 
 # ---------------- GET CURRENT USER ----------------
@@ -274,18 +293,18 @@ def get_me(
 ):
     user_id = current_user.get("sub")
     user = user_service.get_user_by_id(user_id)
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # Map database user to schema and inject data from token for consistency
     # (Or just use database data if we want most up-to-date)
     response_data = UserResponse.model_validate(user)
-    
+
     # Ensure org_ids from token is used
     org_ids = current_user.get("org_ids", [])
     response_data.org_ids = [uuid.UUID(oid) for oid in org_ids]
-    
+
     return response_data
 
 
@@ -343,7 +362,9 @@ def get_user_org_identifiers(
     return service.get_user_identifiers(user_id=current_user.get("sub"))
 
 
-@router.put("/me/org-identifiers/{identifier_id}", response_model=UserOrgIdentifierResponse)
+@router.put(
+    "/me/org-identifiers/{identifier_id}", response_model=UserOrgIdentifierResponse
+)
 def update_user_org_identifier(
     identifier_id: uuid.UUID,
     data: UserOrgIdentifierUpdate,

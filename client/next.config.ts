@@ -13,6 +13,15 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.alphacoders.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
