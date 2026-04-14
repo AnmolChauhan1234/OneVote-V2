@@ -1,17 +1,25 @@
-import { redirect } from "next/navigation";
-import { getMeServer } from "@/lib/ssr/auth.server";
+"use client";
+
+import { useMe } from "@/features/auth/hooks";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import BottomHeader from "@/components/ui/Header";
 
-export default async function ProtectedLayout({
+export default function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getMeServer();
+  const { data: user, isLoading } = useMe();
+  const router = useRouter();
 
-  if (!user) {
-    redirect("/login");
-  }
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace("/login");
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) return null;
 
   return (
     <div className="flex min-h-screen flex-col">

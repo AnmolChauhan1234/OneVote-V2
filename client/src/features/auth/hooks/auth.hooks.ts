@@ -25,6 +25,7 @@ export function useLogin() {
         queryFn: getCurrentUser,
       });
       router.replace("/dashboard");
+      router.refresh();
     },
   });
 }
@@ -32,9 +33,7 @@ export function useLogin() {
 export function useRegister() {
   const router = useRouter();
 
-  return useApiMutation(registerUser, {
-    onSuccess: () => router.replace("/login"),
-  });
+  return useApiMutation(registerUser);
 }
 
 export function useLogout() {
