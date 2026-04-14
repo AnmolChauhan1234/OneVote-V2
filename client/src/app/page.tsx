@@ -115,7 +115,7 @@ export default function HomePage() {
       name: "Maki Zenin",
       role: "Election Coordinator, Jujutsu High",
       content:
-        "OneVote made our student council elections completely transparent. The biometric verification eliminated fraud completely.",
+        "OneVote made our Zenin council elections completely transparent. The biometric verification eliminated fraud completely.",
       rating: 5,
       image: "/maki.jpg",
       organization: "Educational Institution",
@@ -124,16 +124,16 @@ export default function HomePage() {
       name: "Yuki Tsukumo",
       role: "Executive Director, Star Plasma Voters",
       content:
-        "Managing 5000+ voters has never been easier. The platform scales perfectly and the support team is exceptional.",
+        "Managing 5000+ voters has never been easier. The platform scales perfectly and the support high cursed energy output.",
       rating: 5,
       image: "/yuki.jpg",
       organization: "Non-Profit Organization",
     },
     {
       name: "Yoriichi Tsugikuni",
-      role: "Board Chairman, Demon Slayer Corps",
+      role: "Board Chairman, Gotei 13",
       content:
-        "The security features give us complete confidence in our election results. A game-changer for organizational democracy.",
+        "The security features give us complete confidence in our election results. A game-changer for Soul Society democracy.",
       rating: 5,
       image: "/yorichi.jpg",
       organization: "Corporate Board",
