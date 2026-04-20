@@ -9,7 +9,11 @@ import {
   loginUser,
   registerUser,
   logoutUser,
+  getUserOrgIdentifiers,
+  addUserOrgIdentifier,
+  updateUserOrgIdentifier
 } from "../services/auth.service";
+import { UserOrgIdentifierCreateData } from "../schemas/identifier.schema";
 
 import { queryKeys } from "@/constants/queryKeys";
 import { useApiMutation } from "@/hooks/useApiMutation";
@@ -63,6 +67,23 @@ export function useMe() {
     retry: false, // Don't retry 401s
     staleTime: 1000 * 60 * 5, // 5 mins
   });
+}
+
+// USE USER IDENTIFIERS
+export function useUserOrgIdentifiers() {
+  return useApiQuery(queryKeys.auth.orgIdentifiers.all, getUserOrgIdentifiers);
+}
+
+// USE ADD IDENTIFIER
+export function useAddUserOrgIdentifier() {
+  return useApiMutation(
+    (payload: UserOrgIdentifierCreateData) => addUserOrgIdentifier(payload),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.auth.orgIdentifiers.all });
+      },
+    }
+  );
 }
 
 // ----------------------------------------------------------------

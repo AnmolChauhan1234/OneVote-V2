@@ -35,6 +35,12 @@ export async function getElections(): Promise<ElectionResponse[]> {
   return res.data;
 }
 
+// GET MY ELECTIONS (voter's eligible elections)
+export async function getMyElections(): Promise<ElectionResponse[]> {
+  const res = await axiosClient.get<ElectionResponse[]>(API_URLS.ELECTION.MY_ELECTIONS);
+  return res.data;
+}
+
 // GET ELECTION DETAIL
 export async function getElectionDetail(
   election_id: string

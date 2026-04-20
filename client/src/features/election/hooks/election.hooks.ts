@@ -8,6 +8,7 @@ import { useApiQuery } from "@/hooks/useApiQuery";
 import {
   createElection,
   getElections,
+  getMyElections,
   getElectionDetail,
   updateElection,
   getElectionResults,
@@ -30,6 +31,11 @@ import {
 // USE ELECTION LIST
 export function useElections() {
   return useApiQuery(queryKeys.election.all, getElections);
+}
+
+// USE MY ELECTIONS (voter's eligible elections)
+export function useMyElections() {
+  return useApiQuery(queryKeys.election.myElections, getMyElections);
 }
 
 // USE ELECTION DETAIL
@@ -74,7 +80,7 @@ export function useElectionResults(election_id: string) {
 
 // USE CREATE POSITION
 export function useCreatePosition(election_id: string) {
-  return useApiMutation(
+  return useApiMutation<any, PositionCreateFormData>(
     (payload: PositionCreateFormData) => createPosition(election_id, payload),
     {
       onSuccess: () => {
@@ -95,7 +101,7 @@ export function usePositions(election_id: string) {
 
 // USE CREATE CANDIDATE
 export function useCreateCandidate(position_id: string) {
-  return useApiMutation(
+  return useApiMutation<any, CandidateCreateFormData>(
     (payload: CandidateCreateFormData) => createCandidate(position_id, payload),
     {
       onSuccess: () => {

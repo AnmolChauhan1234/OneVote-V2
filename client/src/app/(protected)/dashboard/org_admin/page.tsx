@@ -20,40 +20,40 @@ export default function OrgAdminPage() {
   // Wait, the useOrganisation hook is enabled if primaryOrgId exists.
   const { data: orgData, isLoading: isOrgLoading } = useOrganisation(primaryOrgId);
 
-  if (isUserLoading || (hasOrgId && isOrgLoading)) {
-    return (
-      <div className="flex h-[70vh] items-center justify-center">
-        <Loader2 className="animate-spin text-black/50" size={32} />
-      </div>
-    );
-  }
-
   // State Machine Render Logic
   const renderContent = () => {
+    if (isUserLoading || (hasOrgId && isOrgLoading)) {
+      return (
+        <div key="loading" className="flex h-[70vh] items-center justify-center">
+          <Loader2 className="animate-spin text-black/50" size={32} />
+        </div>
+      );
+    }
+
     // 1. If currently creating an organisation (Form View)
     if (isCreating && !hasOrgId) {
-      return <CreateOrganisationForm onCancel={() => setIsCreating(false)} />;
+      return <CreateOrganisationForm key="create-form" onCancel={() => setIsCreating(false)} />;
     }
 
     // 2. If no organisation exists at all
     if (!hasOrgId || !orgData) {
-      return <OrgEmptyState onCreateClick={() => setIsCreating(true)} />;
+      return <OrgEmptyState key="empty-state" onCreateClick={() => setIsCreating(true)} />;
     }
 
     // 3. If organisation is created but pending verification
     if (orgData.status === "PENDING_VERIFICATION") {
-      return <OrgPendingState />;
+      return <OrgPendingState key="pending-state" />;
     }
 
     // 4. Default verified view
-    return <OrgDashboardOverview />;
+    return <OrgDashboardOverview key="dashboard" orgId={primaryOrgId} />;
   };
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <AnimatePresence mode="wait">
         <motion.div
-          key={isCreating ? "form" : orgData?.status || "empty"}
+          key={isUserLoading || isOrgLoading ? "loading" : isCreating ? "form" : orgData?.status || "empty"}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}

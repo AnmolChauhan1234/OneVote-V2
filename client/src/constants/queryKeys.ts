@@ -9,16 +9,12 @@ export const queryKeys = {
   // ----------------------------------------------------------------
   auth: {
     me: ["me"] as const,
-    session: ["session"] as const, 
+    session: ["session"] as const,
+    orgIdentifiers: {
+      all: ["user-org-identifiers"] as const,
+    },
   },
 
-  // ----------------------------------------------------------------
-  // USER ORG IDENTIFIERS
-  // GET /auth/me/org-identifiers
-  // ----------------------------------------------------------------
-  userOrg: {
-    all: ["user-org-identifiers"] as const,
-  },
 
   // ----------------------------------------------------------------
   // ADMIN
@@ -48,6 +44,9 @@ export const queryKeys = {
   election: {
     // GET /election/
     all: ["elections"] as const,
+
+    // GET /election/my-elections (voter's eligible elections)
+    myElections: ["elections", "my-elections"] as const,
 
     // GET /election/{election_id}
     detail: (electionId: string) =>

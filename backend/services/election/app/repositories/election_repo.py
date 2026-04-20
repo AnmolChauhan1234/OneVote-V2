@@ -29,7 +29,12 @@ class ElectionRepository:
     def get_election(self, election_id: str) -> Optional[Election]:
         return self.db.query(Election).filter(Election.id == election_id).first()
 
-    def get_elections(self, skip: int = 0, limit: int = 100) -> List[Election]:
+    def get_elections(self, org_ids: List[str], skip: int = 0, limit: int = 100) -> List[Election]:
+        return self.db.query(Election)\
+            .filter(Election.org_id.in_(org_ids))\
+            .offset(skip).limit(limit).all()
+
+    def get_all_elections(self, skip: int = 0, limit: int = 100) -> List[Election]:
         return self.db.query(Election).offset(skip).limit(limit).all()
 
     def update_election(self, election: Election, data: ElectionUpdate) -> Election:
@@ -86,6 +91,36 @@ class ElectionRepository:
             EligibleVoter.election_id == election_id,
             EligibleVoter.voter_id == voter_id
         ).first()
+
+    def update_voter_id_by_identifier(self, org_id: str, identifier_value: str, user_id: str) -> int:
+        """Update voter_id on all eligible_voter rows matching org_id + identifier."""
+        from sqlalchemy import update
+        # Get election IDs belonging to this org
+        election_ids = [
+            e.id for e in self.db.query(Election).filter(Election.org_id == org_id).all()
+        ]
+        if not election_ids:
+            return 0
+
+        result = self.db.query(EligibleVoter).filter(
+            EligibleVoter.election_id.in_(election_ids),
+            EligibleVoter.unique_identifier == identifier_value,
+        ).update({"voter_id": user_id}, synchronize_session="fetch")
+
+        self.db.flush()
+        return result
+
+    def get_elections_by_voter_id(self, voter_id: str) -> List[Election]:
+        """Get all elections where this user is an eligible voter."""
+        election_ids = self.db.query(EligibleVoter.election_id).filter(
+            EligibleVoter.voter_id == voter_id
+        ).distinct().all()
+
+        if not election_ids:
+            return []
+
+        ids = [eid[0] for eid in election_ids]
+        return self.db.query(Election).filter(Election.id.in_(ids)).all()
 
     # ---------------- TRANSACTION ----------------
 

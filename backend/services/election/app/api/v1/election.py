@@ -33,8 +33,20 @@ def get_elections(
     skip: int = 0,
     limit: int = 100,
     service: ElectionService = Depends(get_election_service),
+    current_user=Depends(get_current_user)
 ):
-    return service.get_elections(skip, limit)
+    org_ids = current_user.get("org_ids", [])
+    return service.get_elections(org_ids, skip, limit)
+
+
+@router.get("/my-elections", response_model=List[ElectionResponse])
+def get_my_elections(
+    service: ElectionService = Depends(get_election_service),
+    current_user=Depends(get_current_user)
+):
+    """Get elections where the current user is an eligible voter."""
+    voter_id = current_user.get("sub")
+    return service.get_voter_elections(voter_id)
 
 
 @router.get("/{election_id}", response_model=ElectionResponse)

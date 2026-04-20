@@ -21,7 +21,7 @@ export type ElectionUpdateFormData = z.infer<typeof electionUpdateSchema>;
 export const positionCreateSchema = z.object({
   name: z.string().max(255),
   description: z.string().optional(),
-  max_candidates_selectable: z.number().default(1),
+  max_candidates_selectable: z.number().min(1),
 });
 export type PositionCreateFormData = z.infer<typeof positionCreateSchema>;
 

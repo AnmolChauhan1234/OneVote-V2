@@ -41,8 +41,12 @@ class ElectionService:
             raise HTTPException(status_code=404, detail="Election not found")
         return ElectionResponse.model_validate(election)
 
-    def get_elections(self, skip: int = 0, limit: int = 100) -> List[ElectionResponse]:
-        elections = self.repo.get_elections(skip, limit)
+    def get_elections(self, org_ids: List[str], skip: int = 0, limit: int = 100) -> List[ElectionResponse]:
+        elections = self.repo.get_elections(org_ids, skip, limit)
+        return [ElectionResponse.model_validate(e) for e in elections]
+
+    def get_all_elections(self, skip: int = 0, limit: int = 100) -> List[ElectionResponse]:
+        elections = self.repo.get_all_elections(skip, limit)
         return [ElectionResponse.model_validate(e) for e in elections]
 
     def update_election(self, election_id: str, data: ElectionUpdate) -> ElectionResponse:
@@ -269,3 +273,18 @@ class ElectionService:
     def get_eligible_voters(self, election_id: str) -> List[EligibleVoterResponse]:
         voters = self.repo.get_eligible_voters(election_id)
         return [EligibleVoterResponse.model_validate(v) for v in voters]
+
+    def link_voter_by_identifier(self, org_id: str, identifier_value: str, user_id: str) -> int:
+        """Called internally when a voter maps their identity. Updates eligible_voters rows."""
+        try:
+            updated = self.repo.update_voter_id_by_identifier(org_id, identifier_value, user_id)
+            self.repo.commit()
+            return updated
+        except Exception:
+            self.repo.rollback()
+            raise
+
+    def get_voter_elections(self, voter_id: str) -> List[ElectionResponse]:
+        """Get all elections where this user is an eligible voter."""
+        elections = self.repo.get_elections_by_voter_id(voter_id)
+        return [ElectionResponse.model_validate(e) for e in elections]

@@ -342,16 +342,37 @@ def verify_otp(
 
 # ---------------- ORG IDENTIFIERS ----------------
 @router.post("/me/org-identifiers", response_model=UserOrgIdentifierResponse)
-def add_user_org_identifier(
+async def add_user_org_identifier(
     data: UserOrgIdentifierCreate,
     current_user=Depends(get_current_user),
     service: UserOrgIdentifierService = Depends(get_user_org_identifier_service),
 ):
-    return service.add_identifier(
-        user_id=current_user.get("sub"),
+    user_id = current_user.get("sub")
+    result = service.add_identifier(
+        user_id=user_id,
         org_id=data.org_id,
         identifier_value=data.identifier_value,
     )
+
+    # Notify election service to link this voter to eligible_voters rows
+    election_url = os.getenv("ELECTION_SERVICE_URL", "http://election:8000")
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"{election_url}/api/v1/election/internal/link-voter",
+                json={
+                    "org_id": str(data.org_id),
+                    "identifier_value": data.identifier_value,
+                    "user_id": str(user_id),
+                },
+                headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
+                timeout=5.0,
+            )
+    except Exception as e:
+        # Non-blocking: don't fail the identity mapping if election service is down
+        print(f"Warning: Could not notify election service: {e}")
+
+    return result
 
 
 @router.get("/me/org-identifiers", response_model=List[UserOrgIdentifierResponse])

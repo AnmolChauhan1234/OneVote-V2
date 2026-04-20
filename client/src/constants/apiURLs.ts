@@ -8,20 +8,14 @@ export const API_URLS = {
     REFRESH_TOKEN: "/auth/refresh", // post
     GENERATE_OTP: "/auth/generate-otp", // post
     VERIFY_OTP: "/auth/verify-otp", // post
-  },
-
-  USER_ORG: {
-    ADD_ORG_IDS: "/auth/me/org-identifiers", // post
-    GET_ORG_IDS: "/auth/me/org-identifiers", // get
-
+    ADD_ORG_IDENTIFIER: "/auth/me/org-identifiers", // post
+    GET_ORG_IDENTIFIER: "/auth/me/org-identifiers", // get
     UPDATE_ORG_IDENTIFIER: (identifier_id: string) =>
-      `/auth/me/org-identifiers/${identifier_id}`, // patch
-    // "/auth/me/org-identifiers/{identifier_id}"
-
+      `/auth/me/org-identifiers/${identifier_id}`, // put
     DELETE_ORG_IDENTIFIER: (identifier_id: string) =>
       `/auth/me/org-identifiers/${identifier_id}`, // delete
-    // "/auth/me/org-identifiers/{identifier_id}"
   },
+
 
   ADMIN: {
     REGISTER_ADMIN: "/auth/admin/admins", // post
@@ -68,6 +62,8 @@ export const API_URLS = {
 
     LIST: "/election", // get
     // "/election/"
+
+    MY_ELECTIONS: "/election/my-elections", // get (voter's eligible elections)
 
     GET: (election_id: string) =>
       `/election/${election_id}`, // get
