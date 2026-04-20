@@ -53,7 +53,7 @@ class BiometricService:
     async def _update_auth_biometric_status(self, user_id: uuid.UUID):
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{AUTH_SERVICE_URL}/api/v1/internal/biometric-verified",
+                f"{AUTH_SERVICE_URL}/api/v1/auth/internal/biometric-verified",
                 json={"user_id": str(user_id)},
                 headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
             )

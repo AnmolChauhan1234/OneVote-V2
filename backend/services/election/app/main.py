@@ -21,7 +21,7 @@ app = FastAPI(
 )
 
 app.include_router(election_router, prefix="/api/v1/election", tags=["election"])
-app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])
+app.include_router(internal_router, prefix="/api/v1/election/internal", tags=["internal"])
 
 @app.get("/health", tags=["Health"])
 def health_check():

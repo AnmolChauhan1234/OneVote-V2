@@ -231,10 +231,16 @@ axiosClient.interceptors.response.use(
 
     if (!originalRequest) return Promise.reject(error);
 
-    logger.error(
-      `← ${error.response?.status} ${originalRequest.url}`,
-      error.response?.data,
-    );
+    const isMeCheck401 = error.response?.status === 401 && originalRequest.url?.includes("/auth/me");
+
+    if (isMeCheck401) {
+      logger.debug(`← 401 ${originalRequest.url} (Guest/Logged out)`);
+    } else {
+      logger.error(
+        `← ${error.response?.status} ${originalRequest.url}`,
+        error.response?.data,
+      );
+    }
 
     // ================= 401 HANDLING =================
 
@@ -317,6 +323,11 @@ axiosClient.interceptors.response.use(
     }
 
     // ================= OTHER ERRORS =================
+
+    // Skip global error handling for /me 401s (expected behavior)
+    if (error.response?.status === 401 && originalRequest.url?.includes("/auth/me")) {
+      return Promise.reject(error);
+    }
 
     handleError(error);
     return Promise.reject(error);

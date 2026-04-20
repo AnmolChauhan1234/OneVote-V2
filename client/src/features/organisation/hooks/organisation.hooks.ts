@@ -15,6 +15,7 @@ import {
 } from '../services/organisation.service';
 
 import { 
+  OrganisationCreateFormData,
   OrganisationUpdateFormData 
 } from "../schemas/organisation.schema";
 
@@ -34,11 +35,15 @@ export function useOrganisation(org_id: string) {
 
 // USE CREATE ORGANISATION
 export function useCreateOrganisation() {
-  return useApiMutation(createOrganisation, {
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.organisation.all });
-    },
-  });
+  return useApiMutation(
+    ({ payload, document }: { payload: OrganisationCreateFormData; document: File }) =>
+      createOrganisation(payload, document),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.organisation.all });
+      },
+    }
+  );
 }
 
 // USE UPDATE ORGANISATION

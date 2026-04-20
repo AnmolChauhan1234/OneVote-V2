@@ -8,39 +8,52 @@ export const API_URLS = {
     REFRESH_TOKEN: "/auth/refresh", // post
     GENERATE_OTP: "/auth/generate-otp", // post
     VERIFY_OTP: "/auth/verify-otp", // post
-
-    
   },
 
   USER_ORG: {
     ADD_ORG_IDS: "/auth/me/org-identifiers", // post
     GET_ORG_IDS: "/auth/me/org-identifiers", // get
-    UPDATE_ORG_IDENTIFIER: "/auth/me/org-identifiers", // patch
+
+    UPDATE_ORG_IDENTIFIER: (identifier_id: string) =>
+      `/auth/me/org-identifiers/${identifier_id}`, // patch
     // "/auth/me/org-identifiers/{identifier_id}"
-    DELETE_ORG_IDENTIFIER: "/auth/me/org-identifiers", // delete
+
+    DELETE_ORG_IDENTIFIER: (identifier_id: string) =>
+      `/auth/me/org-identifiers/${identifier_id}`, // delete
     // "/auth/me/org-identifiers/{identifier_id}"
   },
 
   ADMIN: {
-    REGISTER_ADMIN: "/admin/admins", // post
-    GET_ADMINS: "/admin/admins", // get
+    REGISTER_ADMIN: "/auth/admin/admins", // post
+    GET_ADMINS: "/auth/admin/admins", // get
 
-    GET_USERS: "/admin/users", // get
-    BLOCK_USER: "/admin/users", // post
-    // "/admin/users/{user_id}/block"
-    SUSPEND_USER: "/admin/users", // post
-    // "/admin/users/{user_id}/suspend"
-    DELETE_USER: "/admin/users", // delete
-    // "/admin/users/{user_id}"
+    GET_USERS: "/auth/admin/users", // get
 
-    GET_ORG_DOCUMENTS: "/admin/organisation", // get
-    // "/admin/organisation/{org_id}/documents"
-    LIST_PENDING_ORGS: "/admin/organisation", // get
-    APPROVE_ORG: "/admin/organisation", // post
-    // "/admin/organisation/{org_id}/approve"
-    REJECT_ORG: "/admin/organisation", // post
-    // "/admin/organisation/{org_id}/reject"
+    BLOCK_USER: (user_id: string) =>
+      `/auth/admin/users/${user_id}/block`, // post
+    // "/auth/admin/users/{user_id}/block"
 
+    SUSPEND_USER: (user_id: string) =>
+      `/auth/admin/users/${user_id}/suspend`, // post
+    // "/auth/admin/users/{user_id}/suspend"
+
+    DELETE_USER: (user_id: string) =>
+      `/auth/admin/users/${user_id}`, // delete
+    // "/auth/admin/users/{user_id}"
+
+    GET_ORG_DOCUMENTS: (org_id: string) =>
+      `/organisation/admin/organizations/${org_id}/documents`, // get
+    // "/organisation/admin/organizations/{org_id}/documents"
+
+    LIST_PENDING_ORGS: "/organisation/admin/organizations", // get
+
+    APPROVE_ORG: (org_id: string) =>
+      `/organisation/admin/organizations/${org_id}/approve`, // post
+    // "/organisation/admin/organizations/{org_id}/approve"
+
+    REJECT_ORG: (org_id: string) =>
+      `/organisation/admin/organizations/${org_id}/reject`, // post
+    // "/organisation/admin/organizations/{org_id}/reject"
   },
 
   BIOMETRIC: {
@@ -52,69 +65,95 @@ export const API_URLS = {
   ELECTION: {
     CREATE: "/election", // post
     // "/election/"
+
     LIST: "/election", // get
     // "/election/"
-    
-    GET: "/election", // get
+
+    GET: (election_id: string) =>
+      `/election/${election_id}`, // get
     // "/election/{election_id}"
-    UPDATE: "/election", // patch
+
+    UPDATE: (election_id: string) =>
+      `/election/${election_id}`, // patch
     // "/election/{election_id}"
-    GET_RESULTS: "/election", // get
+
+    GET_RESULTS: (election_id: string) =>
+      `/election/${election_id}/results`, // get
     // "/election/{election_id}/results"
-    
-    CREATE_POSITION: "/election", // post
+
+    CREATE_POSITION: (election_id: string) =>
+      `/election/${election_id}/positions`, // post
     // "/election/{election_id}/positions"
-    GET_POSITIONS: "/election", // get
+
+    GET_POSITIONS: (election_id: string) =>
+      `/election/${election_id}/positions`, // get
     // "/election/{election_id}/positions"
-    
-    CREATE_CANDIDATE: "/election/positions", // post
+
+    CREATE_CANDIDATE: (position_id: string) =>
+      `/election/positions/${position_id}/candidates`, // post
     // "/election/positions/{position_id}/candidates"
-    GET_CANDIDATES: "/election/positions", // get
+
+    GET_CANDIDATES: (position_id: string) =>
+      `/election/positions/${position_id}/candidates`, // get
     // "/election/positions/{position_id}/candidates"
-    
-    ADD_VOTERS: "/election", // post
+
+    ADD_VOTERS: (election_id: string) =>
+      `/election/${election_id}/voters`, // post
     // "/election/{election_id}/voters"
-    GET_VOTERS: "/election", // get
+
+    GET_VOTERS: (election_id: string) =>
+      `/election/${election_id}/voters`, // get
     // "/election/{election_id}/voters"
   },
 
   IDENTITY: {
     VERIFY_USER_IDENTITY: "/identity/verify", // post
-    GET_USER_IDENTITY: "/identity", // get
+
+    GET_USER_IDENTITY: (user_id: string) =>
+      `/identity/${user_id}`, // get
     // "/identity/{user_id}"
   },
 
   ORGANISATION: {
     CREATE_ORG: "/organisation", // post
     // "/organisation/"
+
     LIST_ORGS: "/organisation", // get
     // "/organisation/"
-    
-    GET_ORG: "/organisation", // get
+
+    GET_ORG: (org_id: string) =>
+      `/organisation/${org_id}`, // get
     // "/organisation/{org_id}"
-    UPDATE_ORG: "/organisation", // put
+
+    UPDATE_ORG: (org_id: string) =>
+      `/organisation/${org_id}`, // put
     // "/organisation/{org_id}"
-    UPDATE_ORG_DOCUMENTS: "/organisation", // put
+
+    UPDATE_ORG_DOCUMENTS: (org_id: string) =>
+      `/organisation/${org_id}/documents`, // put
     // "/organisation/{org_id}/documents"
-    DELETE_ORG: "/organisation", // delete
+
+    DELETE_ORG: (org_id: string) =>
+      `/organisation/${org_id}`, // delete
     // "/organisation/{org_id}"
   },
 
-
   VOTING: {
     // HEALTH: "/voting/health", // get
+
     CAST_VOTE: "/voting/cast-vote", // post
-    GET_TOTAL_VOTES: "/voting/verify", // get
+
+    GET_TOTAL_VOTES: (election_id: string) =>
+      `/voting/verify/${election_id}`, // get
     // "/voting/verify/{election_id}"
   },
 
   TOKEN: {
-    GENERATE_VOTING_TOKEN: "/token/generate-token", // post
+    GENERATE_VOTING_TOKEN: "/voting/token/generate-token", // post
   },
 
   NOTIFICATION: {
-    GET_NOTIFICATIONS: "/notification/", // get
+    GET_NOTIFICATIONS: "/notification", // get
   },
-
 
 } as const;

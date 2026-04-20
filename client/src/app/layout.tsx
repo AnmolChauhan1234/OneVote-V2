@@ -48,8 +48,9 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${poppins.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <QueryProvider>
           <HydrationBoundary state={dehydrate(queryClient)}>
             <ToastProvider />

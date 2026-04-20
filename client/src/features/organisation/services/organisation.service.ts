@@ -13,11 +13,23 @@ import {
 
 // CREATE ORGANISATION
 export async function createOrganisation(
-  payload: OrganisationCreateFormData
+  payload: OrganisationCreateFormData,
+  document: File
 ): Promise<OrganisationResponse> {
+  const formData = new FormData();
+  formData.append("name", payload.name);
+  if (payload.type) formData.append("type", payload.type);
+  if (payload.description) formData.append("description", payload.description);
+  formData.append("document", document);
+
   const res = await axiosClient.post<OrganisationResponse>(
     API_URLS.ORGANISATION.CREATE_ORG,
-    payload
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
   );
   return res.data;
 }
@@ -35,7 +47,7 @@ export async function getOrganisation(
   org_id: string
 ): Promise<OrganisationResponse> {
   const res = await axiosClient.get<OrganisationResponse>(
-    `${API_URLS.ORGANISATION.GET_ORG}/${org_id}`
+    API_URLS.ORGANISATION.GET_ORG(org_id)
   );
   return res.data;
 }
@@ -46,7 +58,7 @@ export async function updateOrganisation(
   payload: OrganisationUpdateFormData
 ): Promise<OrganisationResponse> {
   const res = await axiosClient.put<OrganisationResponse>(
-    `${API_URLS.ORGANISATION.UPDATE_ORG}/${org_id}`,
+    API_URLS.ORGANISATION.UPDATE_ORG(org_id),
     payload
   );
   return res.data;
@@ -61,7 +73,7 @@ export async function updateOrganisationDocuments(
   documents.forEach((file) => formData.append("documents", file));
 
   const res = await axiosClient.put<OrganisationDocumentResponse[]>(
-    `${API_URLS.ORGANISATION.UPDATE_ORG_DOCUMENTS}/${org_id}/documents`,
+    API_URLS.ORGANISATION.UPDATE_ORG_DOCUMENTS(org_id),
     formData
   );
   return res.data;
@@ -69,5 +81,5 @@ export async function updateOrganisationDocuments(
 
 // DELETE ORGANISATION
 export async function deleteOrganisation(org_id: string): Promise<void> {
-  await axiosClient.delete(`${API_URLS.ORGANISATION.DELETE_ORG}/${org_id}`);
+  await axiosClient.delete(API_URLS.ORGANISATION.DELETE_ORG(org_id));
 }

@@ -16,6 +16,6 @@ app.include_router(
 )
 app.include_router(
     internal.router,
-    prefix="/api/v1/internal",
+    prefix="/api/v1/voting/internal",
     tags=["internal"],
 )

@@ -47,7 +47,7 @@ class OrganisationService:
             try:
                 with httpx.Client() as client:
                     client.post(
-                        f"{AUTH_SERVICE_INTERNAL_URL}/api/v1/internal/update-user-type",
+                        f"{AUTH_SERVICE_INTERNAL_URL}/api/v1/auth/internal/update-user-type",
                         json={"user_id": org_in.owner_id, "user_type": "org_admin"},
                         headers={"X-INTERNAL-KEY": settings.INTERNAL_API_KEY},
                         timeout=5.0

@@ -62,7 +62,7 @@ async def _get_org_ids(user_id: str) -> List[uuid.UUID]:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{ORGANISATION_SERVICE_URL}/api/v1/internal/owners/{user_id}/org",
+                f"{ORGANISATION_SERVICE_URL}/api/v1/organisation/internal/owners/{user_id}/org",
                 headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
                 timeout=5.0,
             )

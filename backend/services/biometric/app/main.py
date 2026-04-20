@@ -9,7 +9,7 @@ app = FastAPI(
 )
 
 app.include_router(biometric.router, prefix="/api/v1/biometric", tags=["biometric"])
-app.include_router(internal.router, prefix="/api/v1/internal", tags=["internal"])
+app.include_router(internal.router, prefix="/api/v1/biometric/internal", tags=["internal"])
 
 @app.get("/health")
 def health_check():

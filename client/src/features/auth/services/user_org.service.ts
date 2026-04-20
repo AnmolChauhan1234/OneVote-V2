@@ -18,11 +18,11 @@ export async function getUserOrgIds(): Promise<ListUserOrgIdentifiersResponse> {
 }
 
 export async function updateUserOrgIdentifier(identifier_id: string, payload: {identifier_value: string}): Promise<UserOrgIdentifierUpdateResponse> {
-  const res = await axiosClient.patch<UserOrgIdentifierUpdateResponse>(`${API_URLS.USER_ORG.UPDATE_ORG_IDENTIFIER}/${identifier_id}`, payload);
+  const res = await axiosClient.put<UserOrgIdentifierUpdateResponse>(API_URLS.USER_ORG.UPDATE_ORG_IDENTIFIER(identifier_id), payload);
   return res.data;
 }
 
 export async function deleteUserOrgIdentifier(identifier_id: string): Promise<UserOrgIdentifierDeleteResponse> {
-  const res = await axiosClient.delete<UserOrgIdentifierDeleteResponse>(`${API_URLS.USER_ORG.DELETE_ORG_IDENTIFIER}/${identifier_id}`);
+  const res = await axiosClient.delete<UserOrgIdentifierDeleteResponse>(API_URLS.USER_ORG.DELETE_ORG_IDENTIFIER(identifier_id));
   return res.data;
 }

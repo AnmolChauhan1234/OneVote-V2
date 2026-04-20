@@ -64,5 +64,5 @@ def debug_route():
 
 # ---------------- ROUTES ----------------
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
-app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
-app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])
+app.include_router(admin_router, prefix="/api/v1/auth/admin", tags=["admin"])
+app.include_router(internal_router, prefix="/api/v1/auth/internal", tags=["internal"])

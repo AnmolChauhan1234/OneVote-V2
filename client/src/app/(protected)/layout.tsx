@@ -3,7 +3,7 @@
 import { useMe } from "@/features/auth/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { BottomHeader } from "@/components/ui/Header";
+import { DashboardHeader } from "@/components/ui/DashboardHeader";
 import { Footer } from "@/components/ui/Footer";
 
 export default function ProtectedLayout({
@@ -24,7 +24,7 @@ export default function ProtectedLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <BottomHeader />
+      <DashboardHeader />
       <main className="flex-1">{children}</main>
       <Footer />
     </div>

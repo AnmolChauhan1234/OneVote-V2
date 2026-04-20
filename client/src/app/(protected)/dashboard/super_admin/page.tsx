@@ -1,10 +1,11 @@
 "use client";
 
+import { SuperAdminDashboardOverview } from "@/features/admin/components/SuperAdminDashboardOverview";
+
 export default function SuperAdminDashboardPage() {
   return (
-    <div>
-      <h1>SuperAdmin Dashboard</h1>
-      <p>SuperAdmin specific content</p>
+    <div className="min-h-screen bg-gray-50/50">
+      <SuperAdminDashboardOverview />
     </div>
   );
 }

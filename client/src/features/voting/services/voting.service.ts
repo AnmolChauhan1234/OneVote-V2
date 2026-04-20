@@ -21,7 +21,7 @@ export async function getTotalVotes(
   election_id: string
 ): Promise<any> { // TODO: Replace 'any' with proper response type if available
   const res = await axiosClient.get(
-    `${API_URLS.VOTING.GET_TOTAL_VOTES}/${election_id}`
+    API_URLS.VOTING.GET_TOTAL_VOTES(election_id)
   );
   return res.data;
 }

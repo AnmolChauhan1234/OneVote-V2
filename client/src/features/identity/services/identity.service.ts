@@ -16,7 +16,7 @@ export async function verifyUserIdentity(payload: {
 // GET USER IDENTITY
 export async function getIdentity(userId: string): Promise<IdentityResponse> {
   const res = await axiosClient.get<IdentityResponse>(
-    `${API_URLS.IDENTITY.GET_USER_IDENTITY}/${userId}`
+    API_URLS.IDENTITY.GET_USER_IDENTITY(userId)
   );
   return res.data;
 }

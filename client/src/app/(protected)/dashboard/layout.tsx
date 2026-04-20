@@ -1,7 +1,7 @@
 "use client";
 
 import { useMe } from "@/features/auth/hooks";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 export default function DashboardLayout({
@@ -11,6 +11,7 @@ export default function DashboardLayout({
 }) {
   const { data: user, isLoading } = useMe();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -24,19 +25,16 @@ export default function DashboardLayout({
         return;
       }
 
-      if (user.user_type === "org_admin") {
-        router.replace("/dashboard/org_admin");
-        return;
+      // ONLY redirect if they land on the exact "/dashboard" root
+      if (pathname === "/dashboard") {
+        if (user.user_type === "org_admin") {
+          router.replace("/dashboard/org_admin");
+        } else {
+          router.replace("/dashboard/user");
+        }
       }
-
-      if (user.user_type !== "voter") {
-        router.replace("/unauthorized");
-        return;
-      }
-
-      router.replace("/dashboard/user");
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, pathname]);
 
   if (isLoading) return null;
 

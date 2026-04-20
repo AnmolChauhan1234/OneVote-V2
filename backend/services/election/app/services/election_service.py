@@ -92,7 +92,7 @@ class ElectionService:
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(
-                    f"{voting_url}/api/v1/internal/elections/{election_id}/results",
+                    f"{voting_url}/api/v1/voting/internal/elections/{election_id}/results",
                     headers={"X-INTERNAL-KEY": internal_key},
                     timeout=5.0
                 )
@@ -227,7 +227,7 @@ class ElectionService:
 
             async with httpx.AsyncClient() as client:
                 resp = await client.post(
-                    f"{auth_url}/api/v1/internal/verify-org-identifiers",
+                    f"{auth_url}/api/v1/auth/internal/verify-org-identifiers",
                     json={"org_id": str(election.org_id), "identifiers": list(set(identifiers))},
                     headers={"X-INTERNAL-KEY": internal_key},
                     timeout=10.0

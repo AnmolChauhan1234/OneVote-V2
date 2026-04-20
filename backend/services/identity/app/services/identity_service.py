@@ -29,7 +29,7 @@ class IdentityService:
         print("get auth user_data caliing....")
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{AUTH_SERVICE_URL}/api/v1/internal/user/{user_id}",
+                f"{AUTH_SERVICE_URL}/api/v1/auth/internal/user/{user_id}",
                 headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
             )
             print("debug response after calling", response.json())
@@ -54,7 +54,7 @@ class IdentityService:
         print("debug update auth identity status")
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{AUTH_SERVICE_URL}/api/v1/internal/identity-verified",
+                f"{AUTH_SERVICE_URL}/api/v1/auth/internal/identity-verified",
                 json={"user_id": str(user_id)},
                 headers={"X-INTERNAL-KEY": INTERNAL_API_KEY},
             )

@@ -13,7 +13,7 @@ from app.schemas.election import (
 
 from shared.core.dependencies import get_current_user
 
-router = APIRouter(prefix="/elections", tags=["Elections"])
+router = APIRouter(tags=["Elections"])
 
 
 # ----------------------------------------

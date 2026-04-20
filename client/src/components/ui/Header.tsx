@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { ROUTES } from "@/constants/routes";
 import { useLogout, useMe } from "@/features/auth/hooks";
+import { useDashboard } from "@/providers/DashboardProvider";
 import path from "path";
 
 // Menu items configuration
