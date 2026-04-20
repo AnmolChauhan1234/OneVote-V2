@@ -41,19 +41,28 @@ export function useLogout() {
 
   return useApiMutation(logoutUser, {
     onSuccess: () => {
+      // 1. Clear everything first
       queryClient.clear();
+
+      // 2. 🔥 Set user to null AFTER clearing, so it sticks and stops active hooks from refetching
+      queryClient.setQueryData(queryKeys.auth.me, null);
+      queryClient.setQueryData(queryKeys.auth.session, null);
+
       router.replace("/");
     },
     onError: () => {
-      // logout failed (401 expired token) — still clear and redirect
       queryClient.clear();
+      queryClient.setQueryData(queryKeys.auth.me, null);
       router.replace("/");
     },
   });
 }
 
 export function useMe() {
-  return useApiQuery(queryKeys.auth.me, getCurrentUser);
+  return useApiQuery(queryKeys.auth.me, getCurrentUser, {
+    retry: false, // Don't retry 401s
+    staleTime: 1000 * 60 * 5, // 5 mins
+  });
 }
 
 // ----------------------------------------------------------------

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field, AliasChoice
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 from datetime import datetime
 import enum
@@ -45,7 +45,7 @@ class OrganisationListPendingResponse(BaseModel):
     id: uuid.UUID
     name: str
     submittedAt: datetime = Field(
-        validation_alias=AliasChoice("submittedAt", "created_at"),
+        validation_alias="created_at",
         serialization_alias="submittedAt"
     )
 

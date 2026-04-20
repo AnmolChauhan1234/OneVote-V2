@@ -4,7 +4,7 @@ sqlalchemy
 psycopg2-binary
 alembic
 redis
-pydantic
+pydantic>=2.4.2
 pydantic-settings
 face_recognition
 opencv-python-headless
