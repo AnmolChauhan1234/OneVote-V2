@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Vote, History, TrendingUp, Info, User, LayoutDashboard, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { IdentifierMapper } from "@/features/auth/components/IdentifierMapper";
 import { useMyElections } from "@/features/election/hooks/election.hooks";
 
@@ -149,13 +150,13 @@ export function VoterDashboardOverview() {
                         <p className="text-[10px] text-black/30 mb-6">
                           Ends: {new Date(election.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </p>
-                        <button
-                          disabled={election.status !== 'ONGOING'}
-                          className="w-full py-4 bg-black text-white text-[10px] font-bold uppercase tracking-[0.2em] transition hover:shadow-xl active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                        <Link
+                          href={`/dashboard/user/vote/${election.id}`}
+                          className={`w-full py-4 text-center block bg-black text-white text-[10px] font-bold uppercase tracking-[0.2em] transition hover:shadow-xl active:scale-95 ${election.status !== 'ONGOING' ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}`}
                         >
                           {election.status === 'ONGOING' ? 'Launch Ballot' :
                             election.status === 'UPCOMING' ? 'Not Started Yet' : 'Completed'}
-                        </button>
+                        </Link>
                       </div>
                     ))}
                   </div>

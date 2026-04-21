@@ -8,17 +8,20 @@ def generate_vote_hash(data: str) -> str:
 
 def build_vote_string(
     election_id: str,
-    position_id: str,
-    candidate_id: str,
+    selections: list,
     user_reference_hash: str,
     previous_hash: str,
     timestamp: str,
 ) -> str:
+    # Ensure selections are sorted deterministically (by position_id) before hashing
+    sorted_selections = sorted(
+        [{"position_id": str(s.get("position_id", "")), "candidate_id": str(s.get("candidate_id", ""))} for s in selections],
+        key=lambda s: s["position_id"]
+    )
     return json.dumps(
         {
             "election_id": str(election_id),
-            "position_id": str(position_id),
-            "candidate_id": str(candidate_id),
+            "selections": sorted_selections,
             "user_reference_hash": user_reference_hash,
             "previous_hash": previous_hash,
             "timestamp": timestamp,
@@ -30,16 +33,14 @@ def build_vote_string(
 
 def create_vote_hash(
     election_id: str,
-    position_id: str,
-    candidate_id: str,
+    selections: list,
     user_reference_hash: str,
     previous_hash: str,
     timestamp: str,
 ):
     vote_string = build_vote_string(
         election_id,
-        position_id,
-        candidate_id,
+        selections,
         user_reference_hash,
         previous_hash,
         timestamp,
@@ -78,8 +79,7 @@ def verify_vote_chain(votes):
 
         vote_string = build_vote_string(
             vote.election_id,
-            vote.position_id,
-            vote.candidate_id,
+            vote.selections,
             vote.user_reference_hash,
             previous_hash,
             timestamp,

@@ -5,17 +5,19 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Building2, UploadCloud, X, ArrowLeft, Loader2 } from "lucide-react";
-import { 
-  OrganisationCreateFormData, 
-  organisationCreateSchema 
+import {
+  OrganisationCreateFormData,
+  organisationCreateSchema
 } from "../schemas/organisation.schema";
-import { 
-  useCreateOrganisation, 
-  useUpdateOrganisationDocuments 
+import {
+  useCreateOrganisation,
+  useUpdateOrganisationDocuments
 } from "../hooks/organisation.hooks";
 import { useMe } from "@/features/auth/hooks";
 import { queryClient } from "@/lib/instances/queryClient";
 import { queryKeys } from "@/constants/queryKeys";
+import axiosClient from "@/lib/instances/axios";
+import { API_URLS } from "@/constants/apiURLs";
 
 interface CreateOrganisationFormProps {
   onCancel: () => void;
@@ -57,13 +59,26 @@ export function CreateOrganisationForm({ onCancel }: CreateOrganisationFormProps
     try {
       setIsSubmitting(true);
       setErrorText("");
-      
+
       // The backend strictly requires the primary document in the initial creation request.
       const org = await createOrg({ payload: data, document: files[0] });
-      
+
+      // Step 2: Refresh token to issue a new JWT containing the new org_ids
+      await axiosClient.post(API_URLS.AUTH.REFRESH_TOKEN);
+
       // Step 3: Refresh Global User State (to pick up the new org status)
+      queryClient.setQueryData(queryKeys.auth.me, (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          org_ids: [...(oldData.org_ids || []), org.id]
+        };
+      });
+      queryClient.setQueryData(queryKeys.organisation.detail(org.id), org);
+
       await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
-      
+      onCancel();
+
     } catch (err: any) {
       console.error(err);
       setErrorText(err?.response?.data?.detail || "Failed to create organization. Please try again.");
@@ -74,7 +89,7 @@ export function CreateOrganisationForm({ onCancel }: CreateOrganisationFormProps
 
   return (
     <div className="max-w-3xl mx-auto py-10 px-4 sm:px-6">
-      <button 
+      <button
         onClick={onCancel}
         className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-black/50 hover:text-black mb-8 transition"
       >
@@ -104,10 +119,10 @@ export function CreateOrganisationForm({ onCancel }: CreateOrganisationFormProps
             <h3 className="text-xs font-bold uppercase tracking-widest text-black/40 border-b border-black/5 pb-2">
               1. Basic Information
             </h3>
-            
+
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-widest text-black">Organization Name *</label>
-              <input 
+              <input
                 {...register("name")}
                 className="w-full border border-black/10 p-3 text-sm focus:border-black outline-none transition"
                 placeholder="E.g., Stanford University"
@@ -117,7 +132,7 @@ export function CreateOrganisationForm({ onCancel }: CreateOrganisationFormProps
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-widest text-black">Organization Type</label>
-              <input 
+              <input
                 {...register("type")}
                 className="w-full border border-black/10 p-3 text-sm focus:border-black outline-none transition"
                 placeholder="E.g., University, Corporate, Non-Profit"
@@ -126,7 +141,7 @@ export function CreateOrganisationForm({ onCancel }: CreateOrganisationFormProps
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-widest text-black">Description</label>
-              <textarea 
+              <textarea
                 {...register("description")}
                 rows={3}
                 className="w-full border border-black/10 p-3 text-sm focus:border-black outline-none transition resize-none"
@@ -143,8 +158,8 @@ export function CreateOrganisationForm({ onCancel }: CreateOrganisationFormProps
             <p className="text-[11px] font-medium text-black/50">
               Upload official institutional documents (e.g., registration certificate, tax ID, authorization letter) to speed up verification.
             </p>
-            
-            <div 
+
+            <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleFileDrop}
               className="border-2 border-dashed border-black/10 p-10 flex flex-col items-center justify-center text-center bg-black/[0.02] hover:bg-black/[0.04] transition cursor-pointer"
@@ -154,10 +169,10 @@ export function CreateOrganisationForm({ onCancel }: CreateOrganisationFormProps
               <p className="text-xs text-black/50 mt-1 mb-4">or click to browse</p>
               <label className="bg-black text-white px-6 py-2 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-black/80 transition">
                 Select Files
-                <input 
-                  type="file" 
-                  multiple 
-                  className="hidden" 
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
                   onChange={(e) => {
                     if (e.target.files) handleFiles(Array.from(e.target.files));
                   }}
@@ -168,15 +183,15 @@ export function CreateOrganisationForm({ onCancel }: CreateOrganisationFormProps
             {files.length > 0 && (
               <ul className="space-y-2 mt-4">
                 {files.map((file, idx) => (
-                  <motion.li 
+                  <motion.li
                     key={idx}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="flex justify-between items-center p-3 text-sm bg-black/5 border border-black/5"
                   >
                     <span className="truncate font-medium pr-4">{file.name}</span>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => removeFile(idx)}
                       className="text-black/50 hover:text-black shrink-0"
                     >

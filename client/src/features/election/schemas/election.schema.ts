@@ -14,7 +14,7 @@ export const electionUpdateSchema = z.object({
   description: z.string().optional(),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
-  status: z.enum(["UPCOMING", "ACTIVE", "COMPLETED", "CANCELLED"]).optional(),
+  status: z.enum(["UPCOMING", "ONGOING", "COMPLETED"]).optional(),
 });
 export type ElectionUpdateFormData = z.infer<typeof electionUpdateSchema>;
 

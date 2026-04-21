@@ -37,8 +37,7 @@ class VotingRepository:
         self,
         organisation_id,
         election_id,
-        position_id,
-        candidate_id,
+        selections,
         user_reference_hash,
         previous_hash,
         vote_hash,
@@ -47,8 +46,7 @@ class VotingRepository:
         vote = Vote(
             organisation_id=organisation_id,
             election_id=election_id,
-            position_id=position_id,
-            candidate_id=candidate_id,
+            selections=selections,
             user_reference_hash=user_reference_hash,
             previous_hash=previous_hash,
             vote_hash=vote_hash,
@@ -115,14 +113,6 @@ class VotingRepository:
     # 📊 Aggregated Results
     # ----------------------------------------
     def get_vote_counts_by_election(self, election_id: str):
-        from sqlalchemy import func
-        return (
-            self.db.query(
-                Vote.position_id,
-                Vote.candidate_id,
-                func.count(Vote.vote_id).label("vote_count")
-            )
-            .filter(Vote.election_id == str(election_id))
-            .group_by(Vote.position_id, Vote.candidate_id)
-            .all()
-        )
+        # Delegate grouping/aggregating to python logic in the service layer 
+        # to ensure uniform execution on both Postgres (JSONB) and local SQLite.
+        return self.get_votes_by_election(election_id)

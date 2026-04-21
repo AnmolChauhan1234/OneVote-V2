@@ -27,9 +27,12 @@ export async function enrollBiometric(
 export async function verifyBiometric(
   payload: BiometricVerifyFormData
 ): Promise<BiometricVerifyResponse> {
+  const formData = new FormData();
+  formData.append("image", payload.image);
+
   const res = await axiosClient.post<BiometricVerifyResponse>(
     API_URLS.BIOMETRIC.VERIFY,
-    payload
+    formData
   );
 
   return res.data;

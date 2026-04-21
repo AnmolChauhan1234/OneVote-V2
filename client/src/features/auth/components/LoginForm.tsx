@@ -32,6 +32,7 @@ export function LoginForm() {
     <form
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-6 w-full max-w-sm"
+      autoComplete="off"
     >
       <div className="space-y-4">
         <Input
@@ -41,6 +42,7 @@ export function LoginForm() {
           icon={<Mail size={16} />}
           variant="light"
           error={errors.email?.message}
+          autoComplete="off"
         />
 
         <div className="space-y-1">
@@ -52,6 +54,7 @@ export function LoginForm() {
             icon={<Lock size={16} />}
             variant="light"
             error={errors.password?.message}
+            autoComplete="new-password"
           />
           <div className="flex justify-end">
             <Link

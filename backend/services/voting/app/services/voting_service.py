@@ -60,10 +60,11 @@ class VotingService:
 
             timestamp = datetime.now(timezone.utc).isoformat()
 
+            selections_dict = [{"position_id": str(s.position_id), "candidate_id": str(s.candidate_id)} for s in vote_data.selections]
+
             vote_hash = create_vote_hash(
                 election_id=vote_data.election_id,
-                position_id=vote_data.position_id,
-                candidate_id=vote_data.candidate_id,
+                selections=selections_dict,
                 user_reference_hash=user_reference_hash,
                 previous_hash=previous_hash,
                 timestamp=timestamp,
@@ -73,8 +74,7 @@ class VotingService:
             new_vote = self.repo.create_vote(
                 organisation_id=vote_data.organisation_id,
                 election_id=vote_data.election_id,
-                position_id=vote_data.position_id,
-                candidate_id=vote_data.candidate_id,
+                selections=selections_dict,
                 user_reference_hash=user_reference_hash,
                 previous_hash=previous_hash,
                 vote_hash=vote_hash,
@@ -122,12 +122,21 @@ class VotingService:
     # 📊 RESULTS
     # ----------------------------------------
     def get_election_results_data(self, election_id: str):
-        counts = self.repo.get_vote_counts_by_election(election_id)
+        votes = self.repo.get_vote_counts_by_election(election_id)
+        
+        tally = {}
+        for vote in votes:
+            if not vote.selections:
+                continue
+            for s in vote.selections:
+                key = (str(s.get("position_id")), str(s.get("candidate_id")))
+                tally[key] = tally.get(key, 0) + 1
+
         return [
             {
-                "position_id": str(count.position_id),
-                "candidate_id": str(count.candidate_id),
-                "vote_count": count.vote_count
+                "position_id": pos_id,
+                "candidate_id": cand_id,
+                "vote_count": count
             }
-            for count in counts
+            for (pos_id, cand_id), count in tally.items()
         ]

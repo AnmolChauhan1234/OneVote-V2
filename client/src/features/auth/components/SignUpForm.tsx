@@ -40,6 +40,7 @@ export default function SignUpForm({
     <form
       onSubmit={form.handleSubmit(onSubmit)}
       className="space-y-6 w-full max-w-sm"
+      autoComplete="off"
     >
       <div className="space-y-4">
         <Input
@@ -49,6 +50,7 @@ export default function SignUpForm({
           icon={<User size={16} />}
           variant="light"
           error={errors.full_name?.message}
+          autoComplete="off"
         />
         <Input
           type="email"
@@ -58,6 +60,7 @@ export default function SignUpForm({
           icon={<Mail size={16} />}
           variant="light"
           error={errors.email?.message}
+          autoComplete="off"
         />
         <Input
           type="password"
@@ -67,6 +70,7 @@ export default function SignUpForm({
           icon={<Lock size={16} />}
           variant="light"
           error={errors.password?.message}
+          autoComplete="new-password"
         />
         <Input
           {...form.register("phone_number")}
@@ -75,6 +79,7 @@ export default function SignUpForm({
           icon={<Phone size={16} />}
           variant="light"
           error={errors.phone_number?.message}
+          autoComplete="off"
         />
       </div>
 

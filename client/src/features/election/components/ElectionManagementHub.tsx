@@ -20,6 +20,7 @@ import { Loader2 } from "lucide-react";
 import { CreatePositionForm } from "./CreatePositionForm";
 import { CreateCandidateForm } from "./CreateCandidateForm";
 import { BulkImportVotersForm } from "./BulkImportVotersForm";
+import { UpdateElectionForm } from "./UpdateElectionForm";
 import { AnimatePresence } from "framer-motion";
 
 interface Props {
@@ -143,11 +144,10 @@ export function ElectionManagementHub({ electionId, onBack }: Props) {
           />
         )}
         {activeTab === "settings" && (
-          <div className="p-20 text-center bg-white border border-black/5">
-            <Settings size={48} className="mx-auto text-black/10 mb-4" />
-            <h3 className="text-xl font-bold">Election Settings</h3>
-            <p className="text-black/40 mt-2">Configuration options for this election will appear here.</p>
-          </div>
+          <UpdateElectionForm
+            election={election}
+            onSuccess={() => setActiveTab("overview")}
+          />
         )}
       </div>
 
