@@ -125,8 +125,8 @@ class ElectionRepository:
     def update_expired_statuses(self):
         """Automatically transition statuses based on current time."""
         from app.models.election import ElectionStatus
-        from datetime import datetime
-        now = datetime.now()
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
 
         # 1. UPCOMING -> ONGOING
         self.db.query(Election).filter(

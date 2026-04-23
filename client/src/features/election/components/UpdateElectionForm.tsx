@@ -12,14 +12,16 @@ import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { toast } from "sonner";
 import { ElectionResponse } from "../types/types";
 import { ChevronRight } from "lucide-react";
+import { apiDateToLocalInputValue } from "@/lib/utils/dateUtils";
 
 interface Props {
   election: ElectionResponse;
   onSuccess?: () => void;
   disabled?: boolean;
+  isSafetyLocked?: boolean;
 }
 
-export function UpdateElectionForm({ election, onSuccess, disabled }: Props) {
+export function UpdateElectionForm({ election, onSuccess, disabled, isSafetyLocked }: Props) {
   const { data: user } = useMe();
   const isSuperAdmin = user?.role === ROLES.SUPERADMIN;
   const { mutate: update, isPending } = useUpdateElection(election.id);
@@ -34,8 +36,10 @@ export function UpdateElectionForm({ election, onSuccess, disabled }: Props) {
     defaultValues: {
       title: election.title,
       description: election.description || "",
-      start_date: new Date(election.start_date).toISOString().slice(0, 16),
-      end_date: new Date(election.end_date).toISOString().slice(0, 16),
+      // apiDateToLocalInputValue safely treats the UTC API string as UTC,
+      // then returns local-time formatted string for the datetime-local input.
+      start_date: apiDateToLocalInputValue(election.start_date),
+      end_date: apiDateToLocalInputValue(election.end_date),
       status: election.status as any,
       manual_override: election.manual_override,
       override_reason: election.override_reason || "",
@@ -45,8 +49,17 @@ export function UpdateElectionForm({ election, onSuccess, disabled }: Props) {
   const watchManualOverride = watch("manual_override");
 
   const onSubmit = (data: ElectionUpdateFormData) => {
-    // If not super admin, we shouldn't send manual_override fields at all to avoid potential 400s if schema is strict
     const payload = { ...data };
+
+    // Convert datetime-local strings (local time, no tz) → UTC ISO 8601
+    // e.g. "2026-04-23T15:28" → "2026-04-23T09:58:00.000Z"
+    if (payload.start_date) {
+      payload.start_date = new Date(payload.start_date).toISOString();
+    }
+    if (payload.end_date) {
+      payload.end_date = new Date(payload.end_date).toISOString();
+    }
+
     if (!isSuperAdmin) {
       delete payload.manual_override;
       delete payload.override_reason;
@@ -85,7 +98,7 @@ export function UpdateElectionForm({ election, onSuccess, disabled }: Props) {
             variant="light"
             error={errors.title?.message}
             className="w-full"
-            disabled={disabled || (election.status === "ONGOING" && !isSuperAdmin)}
+            disabled={disabled || (election.status === "ONGOING" && !isSuperAdmin) || (isSafetyLocked && !isSuperAdmin)}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -95,7 +108,7 @@ export function UpdateElectionForm({ election, onSuccess, disabled }: Props) {
               type="datetime-local"
               variant="light"
               error={errors.start_date?.message}
-              disabled={disabled || (election.status === "ONGOING" && !isSuperAdmin)}
+              disabled={disabled || (election.status === "ONGOING" && !isSuperAdmin) || (isSafetyLocked && !isSuperAdmin)}
             />
             <Input
               {...register("end_date")}
@@ -126,8 +139,8 @@ export function UpdateElectionForm({ election, onSuccess, disabled }: Props) {
               <div className="relative group/select">
                 <select
                   {...register("status")}
-                  className={`w-full px-6 py-5 text-sm font-bold outline-none transition-all duration-500 bg-black/[0.02] text-black border border-black/5 focus:border-black/20 focus:bg-white focus:ring-4 focus:ring-black/5 rounded-2xl appearance-none ${(disabled || (election.status === "ONGOING" && !isSuperAdmin)) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={disabled || (election.status === "ONGOING" && !isSuperAdmin)}
+                  className={`w-full px-6 py-5 text-sm font-bold outline-none transition-all duration-500 bg-black/[0.02] text-black border border-black/5 focus:border-black/20 focus:bg-white focus:ring-4 focus:ring-black/5 rounded-2xl appearance-none ${(disabled || (election.status === "ONGOING" && !isSuperAdmin) || (isSafetyLocked && !isSuperAdmin)) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={disabled || (election.status === "ONGOING" && !isSuperAdmin) || (isSafetyLocked && !isSuperAdmin)}
                 >
                   <option value="UPCOMING">UPCOMING</option>
                   <option value="ONGOING">ONGOING</option>

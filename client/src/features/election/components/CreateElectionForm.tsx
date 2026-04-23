@@ -30,7 +30,14 @@ export function CreateElectionForm({ orgId, onCancel, onSuccess }: Props) {
   });
 
   const onSubmit = (data: ElectionCreateFormData) => {
-    create(data, {
+    // Convert datetime-local strings (local time, no tz) → UTC ISO 8601
+    // e.g. "2026-04-23T15:28" → "2026-04-23T09:58:00.000Z"
+    const payload = {
+      ...data,
+      start_date: new Date(data.start_date).toISOString(),
+      end_date: new Date(data.end_date).toISOString(),
+    };
+    create(payload, {
       onSuccess: () => {
         toast.success("Election created successfully!");
         onSuccess?.();

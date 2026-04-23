@@ -27,6 +27,7 @@ import { BulkImportVotersForm } from "./BulkImportVotersForm";
 import { UpdateElectionForm } from "./UpdateElectionForm";
 import { ElectionResults } from "./ElectionResults";
 import { AnimatePresence } from "framer-motion";
+import { parseAPIDate } from "@/lib/utils/dateUtils";
 
 interface Props {
   electionId: string;
@@ -52,8 +53,8 @@ export function ElectionManagementHub({ electionId, onBack }: Props) {
     if (!election || election.status === "COMPLETED") return;
 
     const now = new Date().getTime();
-    const startTime = new Date(election.start_date).getTime();
-    const endTime = new Date(election.end_date).getTime();
+    const startTime = parseAPIDate(election.start_date).getTime();
+    const endTime = parseAPIDate(election.end_date).getTime();
 
     let targetTime = null;
     if (election.status === "UPCOMING" && startTime > now) {
@@ -82,7 +83,7 @@ export function ElectionManagementHub({ electionId, onBack }: Props) {
     const isSuperAdmin = user?.role === ROLES.SUPERADMIN;
 
     const now = new Date();
-    const startTime = new Date(election.start_date);
+    const startTime = parseAPIDate(election.start_date);
     const diffInMins = (startTime.getTime() - now.getTime()) / (1000 * 60);
     const isSafetyLocked = status === "UPCOMING" && diffInMins <= 60;
 
@@ -112,7 +113,7 @@ export function ElectionManagementHub({ electionId, onBack }: Props) {
   if (!election) return null;
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
+    return parseAPIDate(dateStr).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -237,7 +238,8 @@ export function ElectionManagementHub({ electionId, onBack }: Props) {
             <UpdateElectionForm
               election={election}
               onSuccess={() => setActiveTab("overview")}
-              disabled={!controls?.canEditLimited}
+              disabled={!(controls?.canEditFull || controls?.canEditLimited)}
+              isSafetyLocked={controls?.isSafetyLocked}
             />
 
             {controls?.isSuperAdmin && (
@@ -380,12 +382,12 @@ function OverviewTab({ election, positions, voters, controls }: any) {
             <div className="relative pl-6 border-l-2 border-black/5">
               <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-black" />
               <p className="text-[10px] font-bold uppercase tracking-widest text-black/40">Starts</p>
-              <p className="text-sm font-bold">{new Date(election.start_date).toLocaleString()}</p>
+              <p className="text-sm font-bold">{parseAPIDate(election.start_date).toLocaleString()}</p>
             </div>
             <div className="relative pl-6 border-l-2 border-black/5">
               <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-black" />
               <p className="text-[10px] font-bold uppercase tracking-widest text-black/40">Ends</p>
-              <p className="text-sm font-bold">{new Date(election.end_date).toLocaleString()}</p>
+              <p className="text-sm font-bold">{parseAPIDate(election.end_date).toLocaleString()}</p>
             </div>
           </div>
         </div>

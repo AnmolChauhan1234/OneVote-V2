@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator, field_serializer, ConfigDict
 from typing import Optional, List, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models.election import ElectionStatus
 
 import uuid
@@ -24,6 +24,17 @@ class ElectionUpdate(BaseModel):
     manual_override: Optional[bool] = None
     override_reason: Optional[str] = None
 
+    @model_validator(mode="after")
+    def force_utc_dates(self) -> "ElectionUpdate":
+        for field in ["start_date", "end_date"]:
+            v = getattr(self, field)
+            if v is not None and isinstance(v, datetime):
+                if v.tzinfo is None:
+                    setattr(self, field, v.replace(tzinfo=timezone.utc))
+                else:
+                    setattr(self, field, v.astimezone(timezone.utc))
+        return self
+
 class ElectionResponse(ElectionBase):
     id: str
     status: ElectionStatus
@@ -33,8 +44,20 @@ class ElectionResponse(ElectionBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("start_date", "end_date", "created_at", "updated_at")
+    def serialize_dt_as_utc(self, v: datetime) -> str:
+        """Always return ISO 8601 with explicit Z suffix so the browser never
+        misparses a tz-naive string as local time."""
+        if v is None:
+            return v
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=timezone.utc)
+        else:
+            v = v.astimezone(timezone.utc)
+        # Use isoformat() and swap +00:00 → Z for compact, unambiguous output
+        return v.isoformat().replace("+00:00", "Z")
 
 class PositionBase(BaseModel):
     name: str = Field(..., max_length=255)
@@ -87,8 +110,17 @@ class EligibleVoterResponse(BaseModel):
     unique_identifier: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("created_at")
+    def serialize_dt_as_utc(self, v: datetime) -> str:
+        if v is None:
+            return v
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=timezone.utc)
+        else:
+            v = v.astimezone(timezone.utc)
+        return v.isoformat().replace("+00:00", "Z")
 
 class BulkVoterUploadResponse(BaseModel):
     total_processed: int

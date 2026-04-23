@@ -2,7 +2,7 @@ from fastapi import HTTPException, status, UploadFile
 from typing import List
 import csv
 import io
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.repositories.election_repo import ElectionRepository
 from app.schemas.election import (
@@ -58,6 +58,7 @@ class ElectionService:
 
     def update_election(self, election_id: str, data: ElectionUpdate, current_user: dict) -> ElectionResponse:
         try:
+            print("RECEIVED start_date:", data.start_date, "| tzinfo:", data.start_date.tzinfo if data.start_date else None)
             election = self.repo.get_election(election_id)
             if not election:
                 raise HTTPException(status_code=404, detail="Election not found")
@@ -67,7 +68,10 @@ class ElectionService:
             is_super_admin = current_user.get("role") == "super_admin"
 
             # 1. Manual Override Check
-            if data.manual_override is not None or data.status is not None:
+            # Only block if manual_override is explicitly set or if status is DIFFERENT from current
+            is_status_changing = data.status is not None and data.status != election.status
+            
+            if data.manual_override is not None or is_status_changing:
                 if not is_super_admin:
                     raise HTTPException(
                         status_code=403, 
@@ -106,12 +110,19 @@ class ElectionService:
 
             # 2. Business Logic Validation
             if status == "UPCOMING":
-                if data.start_date and data.start_date < datetime.now() and not is_super_admin:
-                    raise HTTPException(status_code=400, detail="Start date cannot be in the past")
+                now = datetime.now(timezone.utc)
+                if data.start_date:
+                    # Ensure compared value is tz-aware
+                    start = data.start_date if data.start_date.tzinfo else data.start_date.replace(tzinfo=timezone.utc)
+                    if start < now and not is_super_admin:
+                        raise HTTPException(status_code=400, detail="Start date cannot be in the past")
 
             # 3. Candidate Locking (Safety Mechanism)
             # Candidates are locks if we are within 60 mins of start
-            time_to_start = election.start_date - datetime.now()
+            now = datetime.now(timezone.utc)
+            # Guard against naive datetimes from existing DB rows
+            db_start = election.start_date if election.start_date.tzinfo else election.start_date.replace(tzinfo=timezone.utc)
+            time_to_start = db_start - now
             if status == "UPCOMING" and time_to_start < timedelta(minutes=60):
                 # Check if trying to change critical things
                 requested_fields = data.model_dump(exclude_unset=True).keys()
@@ -235,7 +246,9 @@ class ElectionService:
             if status == "ONGOING" and not is_super_admin:
                 raise HTTPException(status_code=400, detail="Cannot add positions to an ongoing election")
 
-            time_to_start = election.start_date - datetime.now()
+            now = datetime.now(timezone.utc)
+            db_start = election.start_date if election.start_date.tzinfo else election.start_date.replace(tzinfo=timezone.utc)
+            time_to_start = db_start - now
             if status == "UPCOMING" and time_to_start < timedelta(minutes=60) and not is_super_admin:
                 raise HTTPException(status_code=400, detail="Election is locked. Cannot add positions 60 mins before start.")
 
@@ -278,7 +291,9 @@ class ElectionService:
             if status == "ONGOING" and not is_super_admin:
                 raise HTTPException(status_code=400, detail="Cannot add candidates to an ongoing election")
 
-            time_to_start = election.start_date - datetime.now()
+            now = datetime.now(timezone.utc)
+            db_start = election.start_date if election.start_date.tzinfo else election.start_date.replace(tzinfo=timezone.utc)
+            time_to_start = db_start - now
             if status == "UPCOMING" and time_to_start < timedelta(minutes=60) and not is_super_admin:
                 raise HTTPException(status_code=400, detail="Election is locked. Cannot add candidates 60 mins before start.")
 
@@ -320,7 +335,9 @@ class ElectionService:
             if status == "ONGOING" and not is_super_admin:
                 raise HTTPException(status_code=400, detail="Cannot add voters to an ongoing election")
 
-            time_to_start = election.start_date - datetime.now()
+            now = datetime.now(timezone.utc)
+            db_start = election.start_date if election.start_date.tzinfo else election.start_date.replace(tzinfo=timezone.utc)
+            time_to_start = db_start - now
             if status == "UPCOMING" and time_to_start < timedelta(minutes=60) and not is_super_admin:
                 raise HTTPException(status_code=400, detail="Election is locked. Cannot add voters 60 mins before start.")
 
