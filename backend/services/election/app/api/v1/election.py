@@ -62,8 +62,9 @@ def update_election(
     election_id: str,
     data: ElectionUpdate,
     service: ElectionService = Depends(get_election_service),
+    current_user=Depends(get_current_user)
 ):
-    return service.update_election(election_id, data)
+    return service.update_election(election_id, data, current_user)
 
 
 @router.get("/{election_id}/results", response_model=ElectionResultResponse)
@@ -84,8 +85,9 @@ def create_position(
     election_id: str,
     data: PositionCreate,
     service: ElectionService = Depends(get_election_service),
+    current_user=Depends(get_current_user)
 ):
-    return service.create_position(election_id, data)
+    return service.create_position(election_id, data, current_user)
 
 
 @router.get("/{election_id}/positions", response_model=List[PositionResponse])
@@ -105,8 +107,9 @@ def create_candidate(
     position_id: str,
     data: CandidateCreate,
     service: ElectionService = Depends(get_election_service),
+    current_user=Depends(get_current_user)
 ):
-    return service.create_candidate(position_id, data)
+    return service.create_candidate(position_id, data, current_user)
 
 
 @router.get("/positions/{position_id}/candidates", response_model=List[CandidateResponse])
@@ -131,8 +134,9 @@ async def add_eligible_voters(
     file: UploadFile = File(...),
     identifier_column: str = Form(...),
     service: ElectionService = Depends(get_election_service),
+    current_user=Depends(get_current_user)
 ):
-    return await service.bulk_add_eligible_voters_from_csv(election_id, file, identifier_column)
+    return await service.bulk_add_eligible_voters_from_csv(election_id, file, identifier_column, current_user)
 
 
 @router.get("/{election_id}/voters", response_model=List[EligibleVoterResponse])

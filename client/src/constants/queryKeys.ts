@@ -36,6 +36,9 @@ export const queryKeys = {
     // GET /admin/organizations/{org_id}/documents
     orgDocuments: (orgId: string) =>
       ["admin", "organizations", orgId, "documents"] as const,
+
+    // GET /election/admin
+    adminElections: ["admin", "elections"] as const,
   },
 
   // ----------------------------------------------------------------

@@ -122,6 +122,35 @@ class ElectionRepository:
         ids = [eid[0] for eid in election_ids]
         return self.db.query(Election).filter(Election.id.in_(ids)).all()
 
+    def update_expired_statuses(self):
+        """Automatically transition statuses based on current time."""
+        from app.models.election import ElectionStatus
+        from datetime import datetime
+        now = datetime.now()
+
+        # 1. UPCOMING -> ONGOING
+        self.db.query(Election).filter(
+            Election._status == ElectionStatus.UPCOMING,
+            Election.start_date <= now,
+            Election.manual_override == False
+        ).update({"_status": ElectionStatus.ONGOING}, synchronize_session=False)
+
+        # 2. ONGOING -> COMPLETED
+        self.db.query(Election).filter(
+            Election._status == ElectionStatus.ONGOING,
+            Election.end_date <= now,
+            Election.manual_override == False
+        ).update({"_status": ElectionStatus.COMPLETED}, synchronize_session=False)
+
+        # 3. UPCOMING -> COMPLETED (Edge case if election is very short and both passed)
+        self.db.query(Election).filter(
+            Election._status == ElectionStatus.UPCOMING,
+            Election.end_date <= now,
+            Election.manual_override == False
+        ).update({"_status": ElectionStatus.COMPLETED}, synchronize_session=False)
+
+        self.db.flush()
+
     # ---------------- TRANSACTION ----------------
 
     def commit(self):
@@ -132,3 +161,12 @@ class ElectionRepository:
 
     def refresh(self, obj):
         self.db.refresh(obj)
+
+    # ---------------- AUDIT ----------------
+
+    def create_audit_log(self, data: dict):
+        from app.models.audit_log import AuditLog
+        log = AuditLog(**data)
+        self.db.add(log)
+        self.db.flush()
+        return log

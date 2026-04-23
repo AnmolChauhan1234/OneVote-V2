@@ -6,6 +6,8 @@ import { Vote, History, TrendingUp, Info, User, LayoutDashboard, Loader2 } from 
 import Link from "next/link";
 import { IdentifierMapper } from "@/features/auth/components/IdentifierMapper";
 import { useMyElections } from "@/features/election/hooks/election.hooks";
+import { ElectionResults } from "@/features/election/components/ElectionResults";
+import { X } from "lucide-react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -24,6 +26,7 @@ const itemVariants = {
 
 export function VoterDashboardOverview() {
   const [activeTab, setActiveTab] = useState<"overview" | "identity">("overview");
+  const [viewingResultsId, setViewingResultsId] = useState<string | null>(null);
   const { data: elections, isLoading: isElectionsLoading } = useMyElections();
 
   return (
@@ -150,13 +153,22 @@ export function VoterDashboardOverview() {
                         <p className="text-[10px] text-black/30 mb-6">
                           Ends: {new Date(election.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </p>
-                        <Link
-                          href={`/dashboard/user/vote/${election.id}`}
-                          className={`w-full py-4 text-center block bg-black text-white text-[10px] font-bold uppercase tracking-[0.2em] transition hover:shadow-xl active:scale-95 ${election.status !== 'ONGOING' ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}`}
-                        >
-                          {election.status === 'ONGOING' ? 'Launch Ballot' :
-                            election.status === 'UPCOMING' ? 'Not Started Yet' : 'Completed'}
-                        </Link>
+                        {election.status === 'COMPLETED' ? (
+                          <button
+                            onClick={() => setViewingResultsId(election.id)}
+                            className="w-full py-4 text-center block bg-black text-white text-[10px] font-bold uppercase tracking-[0.2em] transition hover:shadow-xl active:scale-95"
+                          >
+                            View Results
+                          </button>
+                        ) : (
+                          <Link
+                            href={`/dashboard/user/vote/${election.id}`}
+                            className={`w-full py-4 text-center block bg-black text-white text-[10px] font-bold uppercase tracking-[0.2em] transition hover:shadow-xl active:scale-95 ${election.status !== 'ONGOING' ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}`}
+                          >
+                            {election.status === 'ONGOING' ? 'Launch Ballot' :
+                              election.status === 'UPCOMING' ? 'Not Started Yet' : 'Completed'}
+                          </Link>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -195,6 +207,35 @@ export function VoterDashboardOverview() {
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* Results Modal */}
+      <AnimatePresence>
+        {viewingResultsId && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setViewingResultsId(null)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative z-10 w-full max-w-5xl max-h-[90vh] bg-white overflow-y-auto custom-scrollbar p-8 md:p-16"
+            >
+              <button
+                onClick={() => setViewingResultsId(null)}
+                className="absolute top-8 right-8 text-black/40 hover:text-black transition"
+              >
+                <X size={24} />
+              </button>
+              <ElectionResults electionId={viewingResultsId} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

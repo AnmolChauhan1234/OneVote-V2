@@ -2,6 +2,7 @@ from fastapi import HTTPException, status, UploadFile
 from typing import List
 import csv
 import io
+from datetime import datetime, timedelta
 
 from app.repositories.election_repo import ElectionRepository
 from app.schemas.election import (
@@ -36,35 +37,106 @@ class ElectionService:
             raise
 
     def get_election(self, election_id: str) -> ElectionResponse:
+        self.repo.update_expired_statuses()
+        self.repo.commit()
         election = self.repo.get_election(election_id)
         if not election:
             raise HTTPException(status_code=404, detail="Election not found")
         return ElectionResponse.model_validate(election)
 
     def get_elections(self, org_ids: List[str], skip: int = 0, limit: int = 100) -> List[ElectionResponse]:
+        self.repo.update_expired_statuses()
+        self.repo.commit()
         elections = self.repo.get_elections(org_ids, skip, limit)
         return [ElectionResponse.model_validate(e) for e in elections]
 
     def get_all_elections(self, skip: int = 0, limit: int = 100) -> List[ElectionResponse]:
+        self.repo.update_expired_statuses()
+        self.repo.commit()
         elections = self.repo.get_all_elections(skip, limit)
         return [ElectionResponse.model_validate(e) for e in elections]
 
-    def update_election(self, election_id: str, data: ElectionUpdate) -> ElectionResponse:
+    def update_election(self, election_id: str, data: ElectionUpdate, current_user: dict) -> ElectionResponse:
         try:
             election = self.repo.get_election(election_id)
             if not election:
                 raise HTTPException(status_code=404, detail="Election not found")
 
+            status = election.current_status
+
+            is_super_admin = current_user.get("role") == "super_admin"
+
+            # 1. Manual Override Check
+            if data.manual_override is not None or data.status is not None:
+                if not is_super_admin:
+                    raise HTTPException(
+                        status_code=403, 
+                        detail="Only super admins can manually override election status"
+                    )
+                if data.manual_override and not data.override_reason:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Override reason is required for manual overrides"
+                    )
+                # Log override
+                self.repo.create_audit_log({
+                    "entity_type": "ELECTION",
+                    "entity_id": election_id,
+                    "action": "STATUS_OVERRIDE" if data.manual_override else "STATUS_CHANGE",
+                    "performed_by": current_user.get("sub"),
+                    "previous_values": {"status": election.status, "manual_override": election.manual_override},
+                    "new_values": {"status": data.status or election.status, "manual_override": data.manual_override},
+                    "reason": data.override_reason or "Manual status update"
+                })
+                print(f"AUDIT: Election {election_id} status overridden by {current_user.get('sub')}")
+
+            # 2. State-based restrictions
+            if status == "COMPLETED" and not is_super_admin:
+                raise HTTPException(status_code=400, detail="Completed elections are fully locked")
+
+            if status == "ONGOING":
+                allowed_fields = {"end_date", "description"}
+                requested_fields = data.model_dump(exclude_unset=True).keys()
+                forbidden = requested_fields - allowed_fields
+                if forbidden and not is_super_admin:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Only {allowed_fields} can be updated during an ONGOING election"
+                    )
+
+            # 2. Business Logic Validation
+            if status == "UPCOMING":
+                if data.start_date and data.start_date < datetime.now() and not is_super_admin:
+                    raise HTTPException(status_code=400, detail="Start date cannot be in the past")
+
+            # 3. Candidate Locking (Safety Mechanism)
+            # Candidates are locks if we are within 60 mins of start
+            time_to_start = election.start_date - datetime.now()
+            if status == "UPCOMING" and time_to_start < timedelta(minutes=60):
+                # Check if trying to change critical things
+                requested_fields = data.model_dump(exclude_unset=True).keys()
+                if ("start_date" in requested_fields) and not is_super_admin:
+                     raise HTTPException(
+                        status_code=400, 
+                        detail="Election is locked for starting soon. Cannot change start time."
+                    )
+
             election = self.repo.update_election(election, data)
+            
+            # If manual override is happening, set the overridden_by
+            if data.manual_override:
+                election.overridden_by = current_user.get("sub")
 
             self.repo.commit()
             self.repo.refresh(election)
 
             return ElectionResponse.model_validate(election)
 
-        except Exception:
-            self.repo.rollback()
+        except HTTPException:
             raise
+        except Exception as e:
+            self.repo.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
 
     async def get_election_results(self, election_id: str) -> dict:
         import json
@@ -148,9 +220,24 @@ class ElectionService:
 
     # ---------------- POSITION ----------------
 
-    def create_position(self, election_id: str, data: PositionCreate) -> PositionResponse:
+    def create_position(self, election_id: str, data: PositionCreate, current_user: dict) -> PositionResponse:
         try:
-            self.get_election(election_id)
+            election = self.repo.get_election(election_id)
+            if not election:
+                raise HTTPException(status_code=404, detail="Election not found")
+
+            status = election.current_status
+            is_super_admin = current_user.get("role") == "super_admin"
+
+            if status == "COMPLETED" and not is_super_admin:
+                raise HTTPException(status_code=400, detail="Cannot add positions to a completed election")
+            
+            if status == "ONGOING" and not is_super_admin:
+                raise HTTPException(status_code=400, detail="Cannot add positions to an ongoing election")
+
+            time_to_start = election.start_date - datetime.now()
+            if status == "UPCOMING" and time_to_start < timedelta(minutes=60) and not is_super_admin:
+                raise HTTPException(status_code=400, detail="Election is locked. Cannot add positions 60 mins before start.")
 
             position = self.repo.create_position(election_id, data)
 
@@ -159,6 +246,8 @@ class ElectionService:
 
             return PositionResponse.model_validate(position)
 
+        except HTTPException:
+            raise
         except Exception:
             self.repo.rollback()
             raise
@@ -170,8 +259,29 @@ class ElectionService:
 
     # ---------------- CANDIDATE ----------------
 
-    def create_candidate(self, position_id: str, data: CandidateCreate) -> CandidateResponse:
+    def create_candidate(self, position_id: str, data: CandidateCreate, current_user: dict) -> CandidateResponse:
         try:
+            # Get election through position
+            from app.models.position import Position
+            position = self.repo.db.query(Position).filter(Position.id == position_id).first()
+            if not position:
+                raise HTTPException(status_code=404, detail="Position not found")
+            
+            election = self.repo.get_election(position.election_id)
+            
+            status = election.current_status
+            is_super_admin = current_user.get("role") == "super_admin"
+
+            if status == "COMPLETED" and not is_super_admin:
+                raise HTTPException(status_code=400, detail="Cannot add candidates to a completed election")
+            
+            if status == "ONGOING" and not is_super_admin:
+                raise HTTPException(status_code=400, detail="Cannot add candidates to an ongoing election")
+
+            time_to_start = election.start_date - datetime.now()
+            if status == "UPCOMING" and time_to_start < timedelta(minutes=60) and not is_super_admin:
+                raise HTTPException(status_code=400, detail="Election is locked. Cannot add candidates 60 mins before start.")
+
             candidate = self.repo.create_candidate(position_id, data)
 
             self.repo.commit()
@@ -179,6 +289,8 @@ class ElectionService:
 
             return CandidateResponse.model_validate(candidate)
 
+        except HTTPException:
+            raise
         except Exception:
             self.repo.rollback()
             raise
@@ -190,7 +302,7 @@ class ElectionService:
     # ---------------- VOTERS ----------------
 
     async def bulk_add_eligible_voters_from_csv(
-        self, election_id: str, file: UploadFile, identifier_column: str
+        self, election_id: str, file: UploadFile, identifier_column: str, current_user: dict
     ) -> BulkVoterUploadResponse:
         import os
         import httpx
@@ -198,6 +310,19 @@ class ElectionService:
             election = self.repo.get_election(election_id)
             if not election:
                 raise HTTPException(status_code=404, detail="Election not found")
+
+            status = election.current_status
+            is_super_admin = current_user.get("role") == "super_admin"
+
+            if status == "COMPLETED" and not is_super_admin:
+                raise HTTPException(status_code=400, detail="Cannot add voters to a completed election")
+            
+            if status == "ONGOING" and not is_super_admin:
+                raise HTTPException(status_code=400, detail="Cannot add voters to an ongoing election")
+
+            time_to_start = election.start_date - datetime.now()
+            if status == "UPCOMING" and time_to_start < timedelta(minutes=60) and not is_super_admin:
+                raise HTTPException(status_code=400, detail="Election is locked. Cannot add voters 60 mins before start.")
 
             if not file.filename.endswith('.csv'):
                 raise HTTPException(status_code=400, detail="Only CSV files are accepted")
@@ -286,5 +411,7 @@ class ElectionService:
 
     def get_voter_elections(self, voter_id: str) -> List[ElectionResponse]:
         """Get all elections where this user is an eligible voter."""
+        self.repo.update_expired_statuses()
+        self.repo.commit()
         elections = self.repo.get_elections_by_voter_id(voter_id)
         return [ElectionResponse.model_validate(e) for e in elections]

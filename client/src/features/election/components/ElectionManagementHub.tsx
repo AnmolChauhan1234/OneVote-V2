@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -13,14 +13,19 @@ import {
   LayoutDashboard,
   Calendar,
   Clock,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert,
+  BarChart3
 } from "lucide-react";
-import { useElectionDetail, usePositions, useVoters, useCandidates } from "../hooks/election.hooks";
+import { useElectionDetail, usePositions, useVoters, useCandidates, useUpdateElection } from "../hooks/election.hooks";
+import { useMe } from "@/features/auth/hooks/auth.hooks";
+import { ROLES } from "@/constants/roles";
 import { Loader2 } from "lucide-react";
 import { CreatePositionForm } from "./CreatePositionForm";
 import { CreateCandidateForm } from "./CreateCandidateForm";
 import { BulkImportVotersForm } from "./BulkImportVotersForm";
 import { UpdateElectionForm } from "./UpdateElectionForm";
+import { ElectionResults } from "./ElectionResults";
 import { AnimatePresence } from "framer-motion";
 
 interface Props {
@@ -29,15 +34,72 @@ interface Props {
 }
 
 export function ElectionManagementHub({ electionId, onBack }: Props) {
-  const [activeTab, setActiveTab] = useState<"overview" | "positions" | "voters" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "positions" | "voters" | "settings" | "results">("overview");
   const [isAddingPosition, setIsAddingPosition] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isAddingCandidate, setIsAddingCandidate] = useState(false);
   const [isImportingVoters, setIsImportingVoters] = useState(false);
 
-  const { data: election, isLoading: isElectionLoading } = useElectionDetail(electionId);
+  const { data: election, isLoading: isElectionLoading, refetch: refetchElection } = useElectionDetail(electionId);
   const { data: positions, isLoading: isPositionsLoading } = usePositions(electionId);
   const { data: voters, isLoading: isVotersLoading } = useVoters(electionId);
+  const { data: user } = useMe();
+
+  // 🔥 AUTO-REFRESH STATUS
+  // This effect ensures the UI stays in sync with the backend worker
+  // It schedules a refetch for the exact moment the election status is expected to change
+  useEffect(() => {
+    if (!election || election.status === "COMPLETED") return;
+
+    const now = new Date().getTime();
+    const startTime = new Date(election.start_date).getTime();
+    const endTime = new Date(election.end_date).getTime();
+
+    let targetTime = null;
+    if (election.status === "UPCOMING" && startTime > now) {
+      targetTime = startTime;
+    } else if (election.status === "ONGOING" && endTime > now) {
+      targetTime = endTime;
+    }
+
+    if (targetTime) {
+      // Add a 2-second buffer to allow backend worker/sync to complete
+      const delay = (targetTime - now) + 2000;
+
+      // Only set timer if it's within a reasonable range (setTimeout limit is ~24 days)
+      if (delay > 0 && delay < 2147483647) {
+        const timer = setTimeout(() => {
+          refetchElection();
+        }, delay);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [election?.status, election?.start_date, election?.end_date, refetchElection]);
+
+  const getElectionControls = () => {
+    if (!election) return null;
+    const status = election.status;
+    const isSuperAdmin = user?.role === ROLES.SUPERADMIN;
+
+    const now = new Date();
+    const startTime = new Date(election.start_date);
+    const diffInMins = (startTime.getTime() - now.getTime()) / (1000 * 60);
+    const isSafetyLocked = status === "UPCOMING" && diffInMins <= 60;
+
+    return {
+      canEditFull: (status === "UPCOMING" && !isSafetyLocked) || isSuperAdmin,
+      canEditLimited: status === "ONGOING" || isSuperAdmin,
+      canAddPositions: (status === "UPCOMING" && !isSafetyLocked) || isSuperAdmin,
+      canAddCandidates: (status === "UPCOMING" && !isSafetyLocked) || isSuperAdmin,
+      canAddVoters: (status === "UPCOMING" && !isSafetyLocked) || isSuperAdmin,
+      isSafetyLocked,
+      isOngoing: status === "ONGOING",
+      isCompleted: status === "COMPLETED" && !isSuperAdmin,
+      isSuperAdmin
+    };
+  };
+
+  const controls = getElectionControls();
 
   if (isElectionLoading) {
     return (
@@ -71,27 +133,48 @@ export function ElectionManagementHub({ electionId, onBack }: Props) {
       </button>
 
       {/* Header Card */}
-      <div className="bg-black text-white p-8 md:p-12 relative overflow-hidden">
-        <div className="relative z-10 space-y-4">
-          <div className="flex items-center gap-3">
-            <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest border border-white/20 ${election.status === 'ACTIVE' ? 'bg-green-500 text-white border-none' : ''
-              }`}>
+      <div className="bg-black text-white p-8 md:p-16 rounded-[2.5rem] relative overflow-hidden shadow-2xl shadow-black/20 group">
+        <div className="relative z-10 space-y-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg 
+              ${election.status === 'ONGOING' ? 'bg-green-500 text-white shadow-green-500/20' :
+                election.status === 'COMPLETED' ? 'bg-red-500 text-white shadow-red-500/20' : 'bg-blue-600 text-white shadow-blue-500/20'}`}>
               {election.status}
-            </span>
-            <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-              <Clock size={12} />
-              Started {formatDate(election.start_date)}
-            </span>
+            </div>
+            {election.manual_override && (
+              <div className="px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] bg-orange-500 text-white rounded-full shadow-lg shadow-orange-500/20 flex items-center gap-2">
+                <ShieldAlert size={12} />
+                Manual Override
+              </div>
+            )}
+            <div className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-3 bg-white/5 px-4 py-1.5 rounded-full backdrop-blur-md">
+              <Clock size={12} className="text-white/20" />
+              {election.status === 'UPCOMING' ? `Activation ${formatDate(election.start_date)}` :
+                election.status === 'ONGOING' ? `Activated ${formatDate(election.start_date)}` :
+                  `Concluded ${formatDate(election.end_date)}`}
+            </div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter">{election.title}</h1>
-          <p className="text-white/60 max-w-2xl text-lg font-light leading-relaxed">
-            {election.description || "No description provided for this election."}
-          </p>
+
+          <div className="space-y-4">
+            <h1 className="text-4xl md:text-7xl font-bold tracking-tighter leading-none uppercase italic group-hover:translate-x-2 transition-transform duration-700">
+              {election.title}
+            </h1>
+            <p className="text-white/50 max-w-2xl text-sm md:text-lg font-medium leading-relaxed">
+              {election.description || "No description provided for this election node. The ledger entries will determine the scope of this protocol."}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-8 pt-4">
+            <div className="space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Protocol ID</p>
+              <p className="font-mono text-xs text-white/40">{election.id}</p>
+            </div>
+          </div>
         </div>
 
         {/* Abstract Background Design */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 -rotate-45 translate-x-32 -translate-y-32" />
-        <div className="absolute bottom-0 right-0 w-32 h-2 bg-white/20" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/[0.03] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-1000" />
+        <div className="absolute bottom-0 left-10 w-40 h-1 bg-white/20" />
       </div>
 
       {/* Tabs */}
@@ -100,6 +183,7 @@ export function ElectionManagementHub({ electionId, onBack }: Props) {
           { id: "overview", label: "Overview", icon: <LayoutDashboard size={14} /> },
           { id: "positions", label: `Positions (${positions?.length || 0})`, icon: <Trophy size={14} /> },
           { id: "voters", label: `Voters (${voters?.length || 0})`, icon: <Users size={14} /> },
+          ...(election.status === "COMPLETED" ? [{ id: "results" as const, label: "Results", icon: <BarChart3 size={14} /> }] : []),
           { id: "settings", label: "Settings", icon: <Settings size={14} /> },
         ].map((tab) => (
           <button
@@ -123,7 +207,10 @@ export function ElectionManagementHub({ electionId, onBack }: Props) {
       {/* Content Area */}
       <div className="grid grid-cols-1 gap-10">
         {activeTab === "overview" && (
-          <OverviewTab election={election} positions={positions} voters={voters} />
+          <OverviewTab election={election} positions={positions} voters={voters} controls={controls} />
+        )}
+        {activeTab === "results" && (
+          <ElectionResults electionId={electionId} />
         )}
         {activeTab === "positions" && (
           <PositionsTab
@@ -134,6 +221,7 @@ export function ElectionManagementHub({ electionId, onBack }: Props) {
               setSelectedPositionId(posId);
               setIsAddingCandidate(true);
             }}
+            controls={controls}
           />
         )}
         {activeTab === "voters" && (
@@ -141,13 +229,21 @@ export function ElectionManagementHub({ electionId, onBack }: Props) {
             electionId={electionId}
             voters={voters}
             onImportVoters={() => setIsImportingVoters(true)}
+            controls={controls}
           />
         )}
         {activeTab === "settings" && (
-          <UpdateElectionForm
-            election={election}
-            onSuccess={() => setActiveTab("overview")}
-          />
+          <div className="space-y-12">
+            <UpdateElectionForm
+              election={election}
+              onSuccess={() => setActiveTab("overview")}
+              disabled={!controls?.canEditLimited}
+            />
+
+            {controls?.isSuperAdmin && (
+              <ManualOverrideSection election={election} />
+            )}
+          </div>
         )}
       </div>
 
@@ -229,10 +325,37 @@ export function ElectionManagementHub({ electionId, onBack }: Props) {
   );
 }
 
-function OverviewTab({ election, positions, voters }: any) {
+function OverviewTab({ election, positions, voters, controls }: any) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
       <div className="md:col-span-2 space-y-8">
+        {controls?.isSafetyLocked && (
+          <div className="p-6 bg-red-50 border border-red-200 flex items-start gap-4 animate-pulse">
+            <Clock className="text-red-500 mt-1" size={20} />
+            <div>
+              <p className="text-sm font-bold text-red-900">Election Lockdown Active</p>
+              <p className="text-xs text-red-700 mt-1">We are within 60 minutes of the start time. To ensure data integrity, all candidate and voter lists are now locked. No further modifications are allowed.</p>
+            </div>
+          </div>
+        )}
+        {election.status === "UPCOMING" && !controls?.isSafetyLocked && (
+          <div className="p-6 bg-blue-50 border border-blue-100 flex items-start gap-4">
+            <Clock className="text-blue-500 mt-1" size={20} />
+            <div>
+              <p className="text-sm font-bold text-blue-900">Election is Upcoming</p>
+              <p className="text-xs text-blue-700 mt-1">Full configuration is allowed. Make sure all candidates and voters are added before the 60-minute lockdown.</p>
+            </div>
+          </div>
+        )}
+        {election.status === "ONGOING" && (
+          <div className="p-6 bg-green-50 border border-green-100 flex items-start gap-4">
+            <Clock className="text-green-500 mt-1" size={20} />
+            <div>
+              <p className="text-sm font-bold text-green-900">Election is Live</p>
+              <p className="text-xs text-green-700 mt-1">Core settings and candidate lists are locked to ensure election integrity. Only end date and description can be modified.</p>
+            </div>
+          </div>
+        )}
         <div className="bg-white border border-black/5 p-8 space-y-6">
           <h3 className="text-xl font-bold flex items-center gap-2">
             <FileText size={20} />
@@ -271,18 +394,20 @@ function OverviewTab({ election, positions, voters }: any) {
   );
 }
 
-function PositionsTab({ electionId, positions, onAddPosition, onAddCandidate }: any) {
+function PositionsTab({ electionId, positions, onAddPosition, onAddCandidate, controls }: any) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Active Positions</h2>
-        <button
-          onClick={onAddPosition}
-          className="bg-black text-white px-6 py-2 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:shadow-lg transition active:scale-95"
-        >
-          <Plus size={14} />
-          Add Position
-        </button>
+        {controls?.canAddPositions && (
+          <button
+            onClick={onAddPosition}
+            className="bg-black text-white px-6 py-2 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:shadow-lg transition active:scale-95"
+          >
+            <Plus size={14} />
+            Add Position
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-8">
@@ -310,13 +435,15 @@ function PositionsTab({ electionId, positions, onAddPosition, onAddCandidate }: 
                       <span className="text-[9px] font-bold uppercase tracking-widest bg-black text-white px-3 py-1.5 shadow-sm">
                         {pos.max_candidates_selectable} Selection Spot(s)
                       </span>
-                      <button
-                        onClick={() => onAddCandidate(pos.id)}
-                        className="text-[9px] font-bold uppercase tracking-widest border border-black px-3 py-1.5 hover:bg-black hover:text-white transition flex items-center gap-2 group"
-                      >
-                        <Plus size={12} className="group-hover:rotate-90 transition-transform" />
-                        Add Candidate
-                      </button>
+                      {controls?.canAddCandidates && (
+                        <button
+                          onClick={() => onAddCandidate(pos.id)}
+                          className="text-[9px] font-bold uppercase tracking-widest border border-black px-3 py-1.5 hover:bg-black hover:text-white transition flex items-center gap-2 group"
+                        >
+                          <Plus size={12} className="group-hover:rotate-90 transition-transform" />
+                          Add Candidate
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="ml-4">
@@ -382,7 +509,7 @@ function CandidateList({ positionId }: { positionId: string }) {
   );
 }
 
-function VotersTab({ electionId, voters, onImportVoters }: any) {
+function VotersTab({ electionId, voters, onImportVoters, controls }: any) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -391,13 +518,15 @@ function VotersTab({ electionId, voters, onImportVoters }: any) {
           <button className="bg-black/5 text-black px-6 py-2 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-black/10 transition">
             Export List
           </button>
-          <button
-            onClick={onImportVoters}
-            className="bg-black text-white px-6 py-2 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:shadow-lg transition active:scale-95"
-          >
-            <UserPlus size={14} />
-            Bulk Import CSV
-          </button>
+          {controls?.canAddVoters && (
+            <button
+              onClick={onImportVoters}
+              className="bg-black text-white px-6 py-2 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:shadow-lg transition active:scale-95"
+            >
+              <UserPlus size={14} />
+              Bulk Import CSV
+            </button>
+          )}
         </div>
       </div>
 
@@ -440,6 +569,66 @@ function VotersTab({ electionId, voters, onImportVoters }: any) {
             </tbody>
           </table>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ManualOverrideSection({ election }: { election: any }) {
+  const { mutate: updateElection, isPending } = useUpdateElection(election.id);
+  const [reason, setReason] = useState("");
+  const [newStatus, setNewStatus] = useState<any>(election.status);
+
+  const handleOverride = () => {
+    if (!reason) {
+      alert("Please provide a reason for manual override.");
+      return;
+    }
+    updateElection({
+      status: newStatus,
+      manual_override: true,
+      override_reason: reason
+    });
+  };
+
+  return (
+    <div className="mt-8 bg-orange-50 border border-orange-200 p-8 space-y-6">
+      <div className="space-y-1">
+        <h3 className="text-xl font-bold text-orange-900">Super Admin Manual Override</h3>
+        <p className="text-xs text-orange-700">Manually force an election state. Use only for emergencies, system failures, or legal interventions. All actions are logged.</p>
+      </div>
+
+      <div className="space-y-4 max-w-lg">
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-orange-900">New Forced Status</label>
+          <select
+            value={newStatus}
+            onChange={(e) => setNewStatus(e.target.value as any)}
+            className="w-full bg-white border border-orange-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            <option value="UPCOMING">UPCOMING</option>
+            <option value="ONGOING">ONGOING</option>
+            <option value="COMPLETED">COMPLETED</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-orange-900">Reason for Intervention</label>
+          <textarea
+            placeholder="Describe why this manual override is necessary..."
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="w-full bg-white border border-orange-200 px-4 py-3 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-orange-500"
+          />
+        </div>
+
+        <button
+          onClick={handleOverride}
+          disabled={isPending}
+          className="w-full bg-orange-600 text-white py-4 text-[10px] font-bold uppercase tracking-widest hover:bg-orange-700 transition disabled:opacity-50"
+        >
+          {isPending ? "Applying Override..." : "Perform Manual Override"}
+        </button>
       </div>
     </div>
   );

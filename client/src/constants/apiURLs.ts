@@ -48,6 +48,8 @@ export const API_URLS = {
     REJECT_ORG: (org_id: string) =>
       `/organisation/admin/organizations/${org_id}/reject`, // post
     // "/organisation/admin/organizations/{org_id}/reject"
+
+    ADMIN_LIST_ELECTIONS: "/election/admin", // get
   },
 
   BIOMETRIC: {

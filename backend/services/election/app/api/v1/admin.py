@@ -17,7 +17,7 @@ def get_all_elections_admin(
     current_user=Depends(get_current_user)
 ):
     # Security check: Ensure user is an ADMIN or SUPER_ADMIN
-    if current_user.get("role") not in ["ADMIN", "SUPER_ADMIN"]:
+    if current_user.get("role") not in ["admin", "super_admin"]:
         raise HTTPException(status_code=403, detail="Only Admins can access this endpoint")
         
     return service.get_all_elections(skip, limit)

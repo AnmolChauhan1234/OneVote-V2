@@ -1,4 +1,4 @@
-export type ElectionStatus = "UPCOMING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+export type ElectionStatus = "UPCOMING" | "ONGOING" | "COMPLETED";
 
 export interface ElectionResponse {
   org_id: string;
@@ -8,6 +8,9 @@ export interface ElectionResponse {
   end_date: string;
   id: string;
   status: ElectionStatus;
+  manual_override: boolean;
+  override_reason?: string;
+  overridden_by?: string;
   created_at: string;
   updated_at: string;
 }

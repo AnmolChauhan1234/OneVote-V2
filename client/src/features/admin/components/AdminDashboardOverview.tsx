@@ -36,78 +36,71 @@ export const AdminDashboardOverview = () => {
 
   if (isLoading) {
     return (
-      <div className="flex h-[400px] items-center justify-center">
+      <div className="flex h-[300px] items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-black/50">
           <Loader2 className="animate-spin" size={32} />
-          <p className="text-sm font-medium tracking-widest uppercase">Loading Pending Requests</p>
+          <p className="text-[10px] font-black tracking-widest uppercase">Syncing Queue...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto py-12 px-6">
-      <div className="mb-12">
-        <h1 className="text-3xl font-black tracking-tight text-black mb-2 flex items-center gap-3">
-          <ShieldAlert size={32} />
-          Admin Verification Queue
-        </h1>
-        <p className="text-black/60 max-w-2xl text-lg">
-          Review and verify pending organizations applying for node representation on the OneVote ledger.
-        </p>
-      </div>
-
+    <div className="w-full">
       {!pendingOrgs || pendingOrgs.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-black/5 rounded-3xl p-16 text-center border border-black/5"
+          className="bg-black/[0.02] rounded-[2rem] p-12 text-center border border-black/5"
         >
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-            <Check className="text-black/40" size={32} />
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-black/[0.02]">
+            <Check className="text-black/20" size={32} />
           </div>
-          <h3 className="text-xl font-bold text-black mb-2">You're all caught up!</h3>
-          <p className="text-black/50 max-w-sm mx-auto">
-            There are currently no organizations awaiting verification. 
+          <h3 className="text-xl font-black text-black mb-2 tracking-tight">Queue Empty</h3>
+          <p className="text-black/40 text-sm font-medium max-w-xs mx-auto">
+            All organization verification requests have been processed. 
           </p>
         </motion.div>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           {pendingOrgs.map((org, i) => (
             <motion.div
               key={org.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-white rounded-3xl p-8 border border-black/10 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:shadow-md transition-shadow"
+              transition={{ delay: i * 0.05 }}
+              className="bg-white rounded-[2rem] p-8 border border-black/5 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:border-black/10 transition-all duration-300"
             >
               <div>
-                <h3 className="text-2xl font-bold text-black mb-1">{org.name}</h3>
-                <div className="flex items-center gap-3 text-sm text-black/50 font-medium">
-                  <span className="flex items-center gap-1">
-                    <FileText size={16} /> Documents Attached
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="text-xl font-black text-black tracking-tight">{org.name}</h3>
+                  <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase rounded-md">Pending</span>
+                </div>
+                <div className="flex items-center gap-4 text-[11px] text-black/40 font-bold uppercase tracking-widest">
+                  <span className="flex items-center gap-1.5">
+                    <FileText size={14} className="text-black/20" /> {org.id.slice(0, 8)}
                   </span>
                   <span>•</span>
-                  <span>Submitted: {new Date(org.submittedAt).toLocaleDateString()}</span>
+                  <span>{new Date(org.submittedAt || Date.now()).toLocaleDateString()}</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="flex items-center gap-2 w-full md:w-auto">
                 <DocsButton orgId={org.id} />
 
                 <button
                   onClick={() => handleReject(org.id)}
                   disabled={isApproving || isRejecting}
-                  className="px-6 py-3 rounded-xl font-bold bg-red-50 text-red-600 hover:bg-red-100 transition-colors flex items-center gap-2"
+                  className="h-12 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all flex items-center gap-2"
                 >
-                  <X size={18} /> Reject
+                  <X size={16} /> Reject
                 </button>
                 <button
                   onClick={() => handleApprove(org.id)}
                   disabled={isApproving || isRejecting}
-                  className="px-6 py-3 rounded-xl font-bold bg-black text-white hover:bg-black/90 transition-colors flex items-center gap-2 shadow-sm"
+                  className="h-12 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-black text-white hover:bg-black/80 transition-all flex items-center gap-2 shadow-xl shadow-black/10"
                 >
-                  <Check size={18} /> Verify & Approve
+                  <Check size={16} /> Verify
                 </button>
               </div>
             </motion.div>
@@ -126,9 +119,9 @@ const DocsButton = ({ orgId }: { orgId: string }) => {
   return (
     <button
       onClick={() => window.open(docs[0].file_url, '_blank')}
-      className="px-6 py-3 rounded-xl font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors flex items-center gap-2"
+      className="h-12 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2"
     >
-      <FileArchive size={18} /> View Docs
+      <FileArchive size={16} /> Documents
     </button>
   );
 };

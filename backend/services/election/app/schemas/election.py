@@ -21,10 +21,15 @@ class ElectionUpdate(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     status: Optional[ElectionStatus] = None
+    manual_override: Optional[bool] = None
+    override_reason: Optional[str] = None
 
 class ElectionResponse(ElectionBase):
     id: str
     status: ElectionStatus
+    manual_override: bool
+    override_reason: Optional[str] = None
+    overridden_by: Optional[uuid.UUID] = None
     created_at: datetime
     updated_at: datetime
 

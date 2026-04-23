@@ -18,6 +18,7 @@ import {
   getCandidates,
   addVoters,
   getVoters,
+  adminGetAllElections,
 } from '../services/election.service';
 
 import {
@@ -30,7 +31,9 @@ import {
 
 // USE ELECTION LIST
 export function useElections() {
-  return useApiQuery(queryKeys.election.all, getElections);
+  return useApiQuery(queryKeys.election.all, getElections, {
+    refetchInterval: 60000, // Poll every minute to stay in sync with backend worker
+  });
 }
 
 // USE MY ELECTIONS (voter's eligible elections)
@@ -139,4 +142,11 @@ export function useVoters(election_id: string) {
     () => getVoters(election_id),
     { enabled: !!election_id }
   );
+}
+
+// USE ADMIN ELECTION LIST
+export function useAdminElections() {
+  return useApiQuery(queryKeys.admin.adminElections, adminGetAllElections, {
+    refetchInterval: 60000, // Poll every minute
+  });
 }

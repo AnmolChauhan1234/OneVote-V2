@@ -138,3 +138,8 @@ export async function getVoters(
   );
   return res.data;
 }
+// GET ALL ELECTIONS (Admin)
+export async function adminGetAllElections(): Promise<ElectionResponse[]> {
+  const res = await axiosClient.get<ElectionResponse[]>(API_URLS.ADMIN.ADMIN_LIST_ELECTIONS);
+  return res.data;
+}

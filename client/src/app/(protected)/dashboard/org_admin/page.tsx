@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMe } from "@/features/auth/hooks";
 import { useOrganisation } from "@/features/organisation/hooks/organisation.hooks";
@@ -13,6 +13,11 @@ import { Loader2 } from "lucide-react";
 export default function OrgAdminPage() {
   const { data: user, isLoading: isUserLoading } = useMe();
   const [isCreating, setIsCreating] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const hasOrgId = user?.org_ids && user.org_ids.length > 0;
   const primaryOrgId = hasOrgId ? user.org_ids[0] : "";
@@ -48,6 +53,14 @@ export default function OrgAdminPage() {
     // 4. Default verified view
     return <OrgDashboardOverview key="dashboard" orgId={primaryOrgId} />;
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#fafafa] flex h-[70vh] items-center justify-center">
+        <Loader2 className="animate-spin text-black/50" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
