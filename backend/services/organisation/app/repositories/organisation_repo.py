@@ -20,8 +20,11 @@ class OrganisationRepository:
     def get_all_by_owner_id(self, owner_id: str) -> List[Organisation]:
         return self.db.query(Organisation).filter(Organisation.owner_id == owner_id).all()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[Organisation]:
-        return self.db.query(Organisation).offset(skip).limit(limit).all()
+    def get_all(self, skip: int = 0, limit: int = 100, search: Optional[str] = None) -> List[Organisation]:
+        query = self.db.query(Organisation)
+        if search is not None and search.strip() != "":
+            query = query.filter(Organisation.name.ilike(f"%{search.strip()}%"))
+        return query.offset(skip).limit(limit).all()
 
     def create(self, org_in: OrganisationCreate) -> Organisation:
         org = Organisation(

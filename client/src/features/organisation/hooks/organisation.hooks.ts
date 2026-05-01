@@ -20,8 +20,11 @@ import {
 } from "../schemas/organisation.schema";
 
 // USE ORGANISATIONS LIST
-export function useOrganisations() {
-  return useApiQuery(queryKeys.organisation.all, getOrganisations);
+export function useOrganisations(search?: string) {
+  return useApiQuery(
+    [...queryKeys.organisation.all, search],
+    () => getOrganisations(search)
+  );
 }
 
 // USE ORGANISATION DETAIL

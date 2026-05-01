@@ -8,6 +8,17 @@ from app.db.session import SessionLocal
 from app.repositories.user_repo import UserRepository
 from app.services.user_service import UserService
 
+# 🔥 Centralized Error Handling
+from shared.core.exceptions import (
+    AppException,
+    app_exception_handler,
+    http_exception_handler,
+    validation_exception_handler,
+    generic_exception_handler
+)
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import RequestValidationError
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,6 +55,12 @@ app = FastAPI(
     lifespan=lifespan,
     dependencies=[Depends(csrf_header), Depends(auth_header)],
 )
+
+# ---------------- EXCEPTION HANDLERS ----------------
+app.add_exception_handler(AppException, app_exception_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
 
 
 # ---------------- CONFIG ----------------

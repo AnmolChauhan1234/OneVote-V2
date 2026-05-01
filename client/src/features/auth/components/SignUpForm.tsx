@@ -15,7 +15,7 @@ export default function SignUpForm({
 }: {
   onSuccess?: (userId: string) => void;
 }) {
-  const { mutate: register, isPending } = useRegister();
+  const { mutate: register, isPending, error } = useRegister();
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -42,6 +42,13 @@ export default function SignUpForm({
       className="space-y-6 w-full max-w-sm"
       autoComplete="off"
     >
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-100 rounded-sm">
+          <p className="text-xs text-red-600 font-medium">
+            {error.message}
+          </p>
+        </div>
+      )}
       <div className="space-y-4">
         <Input
           {...form.register("full_name")}

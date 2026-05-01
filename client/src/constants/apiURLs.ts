@@ -116,7 +116,7 @@ export const API_URLS = {
     CREATE_ORG: "/organisation", // post
     // "/organisation/"
 
-    LIST_ORGS: "/organisation", // get
+    LIST_ORGS: "/organisation/", // get
     // "/organisation/"
 
     GET_ORG: (org_id: string) =>

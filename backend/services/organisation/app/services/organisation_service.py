@@ -30,8 +30,8 @@ class OrganisationService:
     def get_organisation_by_owner(self, owner_id: str):
         return self.repo.get_all_by_owner_id(owner_id)
 
-    def list_organisations(self, skip: int = 0, limit: int = 100):
-        return self.repo.get_all(skip, limit)
+    def list_organisations(self, skip: int = 0, limit: int = 100, search: str = None):
+        return self.repo.get_all(skip, limit, search)
 
     def create_organisation(self, org_in: OrganisationCreate, file: UploadFile):
         try:

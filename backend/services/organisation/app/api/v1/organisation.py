@@ -30,11 +30,12 @@ def create_organisation(
 
 @router.get("/", response_model=List[OrganisationResponse])
 def get_organisations(
+    search: str = None,
     skip: int = 0,
     limit: int = 100,
     service: OrganisationService = Depends(get_organisation_service),
 ):
-    return service.list_organisations(skip=skip, limit=limit)
+    return service.list_organisations(skip=skip, limit=limit, search=search)
 
 
 @router.get("/{org_id}", response_model=OrganisationResponse)
@@ -68,4 +69,4 @@ def delete_organisation(
     org_id: uuid.UUID,
     service: OrganisationService = Depends(get_organisation_service),
 ):
-    service.delete_organisation(org_id)
+    service.delete_organisation(org_id)

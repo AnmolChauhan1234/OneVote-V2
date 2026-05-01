@@ -8,21 +8,19 @@ export function normalizeError(error: unknown): AppError {
 
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
+    const data = error.response?.data as any;
 
-    let code: ErrorCode = ERROR_CODES.UNKNOWN;
-
-    if (status === 401) code = ERROR_CODES.UNAUTHORIZED;
-    else if (status === 403) code = ERROR_CODES.FORBIDDEN;
-    else if (status === 404) code = ERROR_CODES.NOT_FOUND;
-    else if (status && status >= 500) code = ERROR_CODES.SERVER_ERROR;
+    // Prioritize backend structured error response
+    const message = data?.message || data?.detail || error.message || "Request failed";
+    const code = data?.error_code || (status === 401 ? ERROR_CODES.UNAUTHORIZED : 
+                 status === 403 ? ERROR_CODES.FORBIDDEN : 
+                 status === 404 ? ERROR_CODES.NOT_FOUND : 
+                 status && status >= 500 ? ERROR_CODES.SERVER_ERROR : ERROR_CODES.UNKNOWN);
 
     return new AppError(
-      error.response?.data?.detail ||
-        error.response?.data?.message ||
-        error.message ||
-        "Request failed",
+      message,
       status,
-      code
+      code as ErrorCode
     );
   }
 

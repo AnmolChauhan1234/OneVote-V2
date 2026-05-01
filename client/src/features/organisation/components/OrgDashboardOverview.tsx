@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Users, FileText, BarChart3, Settings, Plus, LayoutDashboard, Calendar, ArrowRight } from "lucide-react";
 import { CreateElectionForm } from "@/features/election/components/CreateElectionForm";
 import { useElections } from "@/features/election/hooks/election.hooks";
@@ -28,8 +29,8 @@ interface Props {
 }
 
 export function OrgDashboardOverview({ orgId }: Props) {
+  const router = useRouter();
   const [isCreatingElection, setIsCreatingElection] = useState(false);
-  const [selectedElectionId, setSelectedElectionId] = useState<string | null>(null);
   const { data: elections, isLoading } = useElections();
 
   // Filter elections for this org (though the backend should technically only return those for the user)
@@ -46,16 +47,6 @@ export function OrgDashboardOverview({ orgId }: Props) {
     );
   }
 
-  if (selectedElectionId) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <ElectionManagementHub 
-          electionId={selectedElectionId} 
-          onBack={() => setSelectedElectionId(null)} 
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -153,7 +144,7 @@ export function OrgDashboardOverview({ orgId }: Props) {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <button 
-                            onClick={() => setSelectedElectionId(election.id)}
+                            onClick={() => router.push(`/dashboard/org_admin/election/${election.id}`)}
                             className="h-8 w-8 flex items-center justify-center bg-black/5 rounded-full hover:bg-black hover:text-white transition group-hover:scale-110"
                           >
                             <ArrowRight size={14} />

@@ -32,10 +32,22 @@ import { parseAPIDate } from "@/lib/utils/dateUtils";
 interface Props {
   electionId: string;
   onBack: () => void;
+  activeTab?: "overview" | "positions" | "voters" | "settings" | "results";
+  onTabChange?: (tab: any) => void;
 }
 
-export function ElectionManagementHub({ electionId, onBack }: Props) {
-  const [activeTab, setActiveTab] = useState<"overview" | "positions" | "voters" | "settings" | "results">("overview");
+export function ElectionManagementHub({ 
+  electionId, 
+  onBack, 
+  activeTab: externalTab, 
+  onTabChange 
+}: Props) {
+  const [internalTab, setInternalTab] = useState<"overview" | "positions" | "voters" | "settings" | "results">("overview");
+  
+  // Support both controlled and uncontrolled usage
+  const activeTab = externalTab || internalTab;
+  const setActiveTab = onTabChange || setInternalTab;
+  
   const [isAddingPosition, setIsAddingPosition] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isAddingCandidate, setIsAddingCandidate] = useState(false);

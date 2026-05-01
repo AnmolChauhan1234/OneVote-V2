@@ -4,6 +4,7 @@ from app.repositories.user_repo import UserRepository
 from app.models.user import User, UserRole
 from app.schemas.auth import RegisterRequest
 from shared.core.security import hash_password as get_password_hash
+from shared.core.exceptions import AppException
 
 
 class UserService:
@@ -12,7 +13,11 @@ class UserService:
 
     def register_user(self, user_data: RegisterRequest) -> User:
         if self.repo.get_by_email(user_data.email):
-            raise Exception("User with this email already exists")
+            raise AppException(
+                message="User with this email already exists",
+                error_code="USER_ALREADY_EXISTS",
+                status_code=400
+            )
         
         hashed_password = get_password_hash(user_data.password)
         user = self.repo.create(user_data, hashed_password)
@@ -21,7 +26,11 @@ class UserService:
 
     def create_admin(self, admin_data) -> User:
         if self.repo.get_by_email(admin_data.email):
-            raise Exception("User with this email already exists")
+            raise AppException(
+                message="User with this email already exists",
+                error_code="USER_ALREADY_EXISTS",
+                status_code=400
+            )
         
         hashed_password = get_password_hash(admin_data.password)
         user = self.repo.create_admin(admin_data, hashed_password)

@@ -1,4 +1,13 @@
 from fastapi import FastAPI
+from shared.core.exceptions import (
+    AppException,
+    app_exception_handler,
+    http_exception_handler,
+    validation_exception_handler,
+    generic_exception_handler
+)
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 
 from app.db.base import Base
@@ -45,6 +54,12 @@ app = FastAPI(
     description="Microservice for handling Elections, Positions, Candidates and Eligible Voters.",
     lifespan=lifespan
 )
+
+# ---------------- EXCEPTION HANDLERS ----------------
+app.add_exception_handler(AppException, app_exception_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
 
 app.include_router(admin_router, prefix="/api/v1/election", tags=["admin"])
 app.include_router(election_router, prefix="/api/v1/election", tags=["election"])

@@ -9,6 +9,7 @@ import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { toast } from "sonner";
 import { ShieldCheck, Fingerprint, Plus, AlertCircle, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { OrgSearchSelector } from "../../organisation/components/OrgSearchSelector";
 
 export function IdentifierMapper() {
   const { data: identifiers, isLoading: isIdentifiersLoading } = useUserOrgIdentifiers();
@@ -18,6 +19,7 @@ export function IdentifierMapper() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<UserOrgIdentifierCreateData>({
     resolver: zodResolver(userOrgIdentifierCreateSchema),
@@ -54,11 +56,9 @@ export function IdentifierMapper() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input
-              {...register("org_id")}
-              label="Organization ID"
-              placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
-              variant="light"
+            <OrgSearchSelector
+              label="Select Organization"
+              onSelect={(id) => setValue("org_id", id)}
               error={errors.org_id?.message}
             />
             <Input

@@ -168,6 +168,7 @@ import axios, {
 
 import { refreshToken } from "../utils/refreshToken";
 import { handleError } from "../utils/handleError";
+import { normalizeError } from "../errors/normaliseError";
 import { logger } from "../utils/logger";
 import getCookie from "../utils/getCookie";
 
@@ -225,50 +226,45 @@ axiosClient.interceptors.response.use(
   },
 
   async (error: AxiosError) => {
+    const appError = normalizeError(error);
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
 
-    if (!originalRequest) return Promise.reject(error);
+    if (!originalRequest) return Promise.reject(appError);
 
-    const isMeCheck401 = error.response?.status === 401 && originalRequest.url?.includes("/auth/me");
+    const isMeCheck401 = appError.status === 401 && originalRequest.url?.includes("/auth/me");
 
     if (isMeCheck401) {
       logger.debug(`← 401 ${originalRequest.url} (Guest/Logged out)`);
     } else {
       logger.error(
-        `← ${error.response?.status} ${originalRequest.url}`,
+        `← ${appError.status} ${originalRequest.url}`,
         error.response?.data,
       );
     }
 
     // ================= 401 HANDLING =================
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (appError.status === 401 && !originalRequest._retry) {
       const url = originalRequest.url || "";
 
       const skipUrls = [
         "/auth/login",
         "/auth/logout",
         "/auth/signup",
-        "/auth/refresh", //refresh handled separately
+        "/auth/refresh",
       ];
 
-      // Skip certain routes completely
       if (skipUrls.some((skip) => url.includes(skip))) {
-        return Promise.reject(error);
+        return Promise.reject(appError);
       }
 
-      // IMPORTANT: Do NOT refresh for /me
       if (url.includes("/auth/me")) {
-        logger.warn("User not authenticated — skipping refresh");
-        return Promise.reject(error);
+        return Promise.reject(appError);
       }
 
-      // If already refreshing → queue request
       if (isRefreshing) {
-        logger.debug("Refresh in progress — queueing request", { url });
-
         return new Promise((resolve, reject) => {
           failedQueue.push({
             resolve: () => resolve(axiosClient(originalRequest)),
@@ -277,46 +273,26 @@ axiosClient.interceptors.response.use(
         });
       }
 
-      // 🔥 Start refresh
       originalRequest._retry = true;
       isRefreshing = true;
 
-      logger.warn("401 — access token expired, attempting refresh");
-
       try {
-        await refreshToken(); // uses separate axios instance
-
-        logger.info("Token refresh successful");
-
+        await refreshToken();
         processQueue(null);
-
         return axiosClient(originalRequest);
       } catch (refreshError) {
-        logger.error("Token refresh failed — forcing logout", refreshError);
-
         processQueue(refreshError);
 
         if (!isLoggingOut) {
           isLoggingOut = true;
-
-          // Clear React Query cache
           queryClient.clear();
-
-          // Best-effort server logout
           try {
-            await fetch("/api/v1/auth/logout", {
-              method: "POST",
-              credentials: "include",
-            });
-          } catch {
-            // ignore
-          }
-
-          // Hard redirect
+            await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" });
+          } catch { }
           window.location.href = "/login";
         }
 
-        return Promise.reject(refreshError);
+        return Promise.reject(normalizeError(refreshError));
       } finally {
         isRefreshing = false;
       }
@@ -324,13 +300,12 @@ axiosClient.interceptors.response.use(
 
     // ================= OTHER ERRORS =================
 
-    // Skip global error handling for /me 401s (expected behavior)
-    if (error.response?.status === 401 && originalRequest.url?.includes("/auth/me")) {
-      return Promise.reject(error);
+    if (appError.status === 401 && originalRequest.url?.includes("/auth/me")) {
+      return Promise.reject(appError);
     }
 
-    handleError(error);
-    return Promise.reject(error);
+    handleError(appError);
+    return Promise.reject(appError);
   },
 );
 

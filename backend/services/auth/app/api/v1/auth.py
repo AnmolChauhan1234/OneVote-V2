@@ -82,21 +82,11 @@ async def _get_org_ids(user_id: str) -> List[uuid.UUID]:
 def register(
     user_data: RegisterRequest, user_service: UserService = Depends(get_user_service)
 ):
-    try:
-        user = user_service.register_user(user_data)
-        return RegisterResponse(
-            message="User registered successfully. Verification pending.",
-            user_id=str(user.id),
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-    except Exception as e:
-        print(f"Registeration failed: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong while creating your account. Please try again.",
-        )
+    user = user_service.register_user(user_data)
+    return RegisterResponse(
+        message="User registered successfully. Verification pending.",
+        user_id=str(user.id),
+    )
 
 
 # ---------------- LOGIN ----------------

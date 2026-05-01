@@ -135,8 +135,10 @@ class BiometricService:
                 0
             ]
 
-            if distance > 0.6:
-                raise HTTPException(status_code=401, detail="Face mismatch")
+            print(f"DEBUG: Face distance for user {user_id}: {distance:.4f} (Threshold: 0.45)")
+
+            if distance > 0.45:
+                raise HTTPException(status_code=400, detail="Face mismatch")
 
             biometric_token = str(uuid.uuid4())
 
@@ -171,7 +173,7 @@ class BiometricService:
 
         if not stored_user_id:
             raise HTTPException(
-                status_code=401, detail="Invalid or expired biometric token"
+                status_code=400, detail="Invalid or expired biometric token"
             )
 
         if stored_user_id != str(user_id):

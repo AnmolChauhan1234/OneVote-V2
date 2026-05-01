@@ -117,7 +117,7 @@ export async function getCandidates(
   return res.data;
 }
 
-// ADD VOTERS (Bulk)
+// ADD VOTERS (Manual/JSON)
 export async function addVoters(
   election_id: string,
   voters: EligibleVoterCreateFormData[]
@@ -125,6 +125,28 @@ export async function addVoters(
   const res = await axiosClient.post<BulkVoterUploadResponse>(
     API_URLS.ELECTION.ADD_VOTERS(election_id),
     { voters }
+  );
+  return res.data;
+}
+
+// BULK IMPORT VOTERS (CSV)
+export async function bulkImportVoters(
+  election_id: string,
+  file: File,
+  identifier_column: string
+): Promise<BulkVoterUploadResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("identifier_column", identifier_column);
+
+  const res = await axiosClient.post<BulkVoterUploadResponse>(
+    API_URLS.ELECTION.ADD_VOTERS(election_id),
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
   );
   return res.data;
 }

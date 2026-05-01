@@ -24,7 +24,11 @@ export const getMeServer = async (): Promise<User | null> => {
     })
 
     if (!res.ok) {
-      logger.error("getMeServer — backend responded not ok", { status: res.status })
+      if (res.status === 401) {
+        logger.debug("getMeServer — session expired or invalid (401)")
+      } else {
+        logger.error("getMeServer — backend responded not ok", { status: res.status })
+      }
       return null
     }
 

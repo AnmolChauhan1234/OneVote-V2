@@ -35,9 +35,15 @@ export async function createOrganisation(
 }
 
 // GET ORGANISATIONS LIST
-export async function getOrganisations(): Promise<OrganisationResponse[]> {
+export async function getOrganisations(search?: string): Promise<OrganisationResponse[]> {
+  const params: any = {};
+  if (search && search.trim() !== "") {
+    params.search = search;
+  }
+
   const res = await axiosClient.get<OrganisationResponse[]>(
-    API_URLS.ORGANISATION.LIST_ORGS
+    API_URLS.ORGANISATION.LIST_ORGS,
+    { params }
   );
   return res.data;
 }

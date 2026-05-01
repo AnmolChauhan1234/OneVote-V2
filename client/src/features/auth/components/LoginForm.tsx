@@ -14,7 +14,7 @@ import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 type FormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const { mutate: login, isPending } = useLogin();
+  const { mutate: login, isPending, error } = useLogin();
 
   const {
     register,
@@ -34,6 +34,13 @@ export function LoginForm() {
       className="space-y-6 w-full max-w-sm"
       autoComplete="off"
     >
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-100 rounded-sm">
+          <p className="text-xs text-red-600 font-medium">
+            {error.message}
+          </p>
+        </div>
+      )}
       <div className="space-y-4">
         <Input
           {...register("email")}

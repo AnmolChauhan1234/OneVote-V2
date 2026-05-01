@@ -111,7 +111,8 @@ class ElectionRepository:
         return result
 
     def get_elections_by_voter_id(self, voter_id: str) -> List[Election]:
-        """Get all elections where this user is an eligible voter."""
+        """Get all elections where this user is an eligible voter, excluding completed ones."""
+        from app.models.election import ElectionStatus
         election_ids = self.db.query(EligibleVoter.election_id).filter(
             EligibleVoter.voter_id == voter_id
         ).distinct().all()
@@ -120,7 +121,9 @@ class ElectionRepository:
             return []
 
         ids = [eid[0] for eid in election_ids]
-        return self.db.query(Election).filter(Election.id.in_(ids)).all()
+        return self.db.query(Election).filter(
+            Election.id.in_(ids)
+        ).all()
 
     def update_expired_statuses(self):
         """Automatically transition statuses based on current time."""

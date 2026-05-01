@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Vote, History, TrendingUp, Info, User, LayoutDashboard, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import { IdentifierMapper } from "@/features/auth/components/IdentifierMapper";
 import { useMyElections } from "@/features/election/hooks/election.hooks";
 import { ElectionResults } from "@/features/election/components/ElectionResults";
 import { X } from "lucide-react";
+import { parseAPIDate } from "@/lib/utils/dateUtils";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -26,8 +27,47 @@ const itemVariants = {
 
 export function VoterDashboardOverview() {
   const [activeTab, setActiveTab] = useState<"overview" | "identity">("overview");
+  const [electionFilter, setElectionFilter] = useState<"ONGOING" | "UPCOMING" | "COMPLETED">("ONGOING");
   const [viewingResultsId, setViewingResultsId] = useState<string | null>(null);
-  const { data: elections, isLoading: isElectionsLoading } = useMyElections();
+  const { data: elections, isLoading: isElectionsLoading, refetch } = useMyElections();
+
+  const filteredElections = (elections || []).filter(e => e.status === electionFilter);
+  const counts = {
+    ONGOING: (elections || []).filter(e => e.status === "ONGOING").length,
+    UPCOMING: (elections || []).filter(e => e.status === "UPCOMING").length,
+    COMPLETED: (elections || []).filter(e => e.status === "COMPLETED").length,
+  };
+
+  // 🔥 AUTO-REFRESH STATUS
+  // This effect ensures the voter UI stays in sync with the backend worker
+  // It schedules a refetch for the exact moment any election status is expected to change
+  useEffect(() => {
+    if (!elections || elections.length === 0) return;
+
+    const now = new Date().getTime();
+
+    // Find all future transitions (starts or ends)
+    const transitions = elections.flatMap(e => {
+      const times = [];
+      if (e.status === "UPCOMING") times.push(parseAPIDate(e.start_date).getTime());
+      if (e.status === "ONGOING") times.push(parseAPIDate(e.end_date).getTime());
+      return times;
+    }).filter(t => t > now);
+
+    if (transitions.length === 0) return;
+
+    // Find the very next one
+    const nextTransition = Math.min(...transitions);
+    const delay = (nextTransition - now) + 2000; // Add 2-second buffer for backend worker sync
+
+    // Only set timer if it's within a reasonable range
+    if (delay > 0 && delay < 2147483647) {
+      const timer = setTimeout(() => {
+        refetch();
+      }, delay);
+      return () => clearTimeout(timer);
+    }
+  }, [elections, refetch]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -105,31 +145,49 @@ export function VoterDashboardOverview() {
 
               {/* Active Elections */}
               <section className="space-y-6">
-                <div className="flex items-center justify-between border-b border-black/5 pb-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-black/5 pb-4 gap-4">
                   <h2 className="text-3xl font-bold tracking-tight">Your Elections</h2>
+
+                  <div className="flex gap-2 bg-black/5 p-1 rounded-none">
+                    {[
+                      { id: "ONGOING", label: "Ongoing" },
+                      { id: "UPCOMING", label: "Upcoming" },
+                      { id: "COMPLETED", label: "Completed" },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setElectionFilter(tab.id as any)}
+                        className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${electionFilter === tab.id
+                          ? "bg-black text-white"
+                          : "text-black/40 hover:text-black"
+                          }`}
+                      >
+                        {tab.label} ({counts[tab.id as keyof typeof counts]})
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {isElectionsLoading ? (
                   <div className="flex h-40 items-center justify-center">
                     <Loader2 className="animate-spin text-black/20" size={28} />
                   </div>
-                ) : !elections || elections.length === 0 ? (
+                ) : !filteredElections || filteredElections.length === 0 ? (
                   <div className="py-20 bg-white border border-dashed border-black/10 text-center">
                     <Vote size={48} className="mx-auto text-black/10 mb-4" />
-                    <p className="text-sm font-bold text-black/40">You are not linked to any elections yet.</p>
-                    <p className="text-xs text-black/30 mt-2 max-w-md mx-auto">
-                      Go to the "My Identities" tab and link your organizational ID (e.g. roll number) to start seeing elections.
-                    </p>
-                    <button
-                      onClick={() => setActiveTab("identity")}
-                      className="mt-6 bg-black text-white px-8 py-3 text-[10px] font-bold uppercase tracking-[0.2em] hover:shadow-lg transition active:scale-95"
-                    >
-                      Link Identity
-                    </button>
+                    <p className="text-sm font-bold text-black/40">No {electionFilter.toLowerCase()} elections found.</p>
+                    {electionFilter === "ONGOING" && (
+                      <button
+                        onClick={() => setActiveTab("identity")}
+                        className="mt-6 bg-black text-white px-8 py-3 text-[10px] font-bold uppercase tracking-[0.2em] hover:shadow-lg transition active:scale-95"
+                      >
+                        Check My Identities
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {elections.map((election: any) => (
+                    {filteredElections.map((election: any) => (
                       <div
                         key={election.id}
                         className="group relative bg-white border border-black/5 p-8 hover:shadow-2xl transition-all duration-500 overflow-hidden"

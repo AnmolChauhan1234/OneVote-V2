@@ -17,6 +17,7 @@ import {
   createCandidate,
   getCandidates,
   addVoters,
+  bulkImportVoters,
   getVoters,
   adminGetAllElections,
 } from '../services/election.service';
@@ -123,10 +124,23 @@ export function useCandidates(position_id: string) {
   );
 }
 
-// USE ADD VOTERS
+// USE ADD VOTERS (Manual)
 export function useAddVoters(election_id: string) {
   return useApiMutation(
     (voters: EligibleVoterCreateFormData[]) => addVoters(election_id, voters),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.election.voters(election_id) });
+      },
+    }
+  );
+}
+
+// USE BULK IMPORT VOTERS (CSV)
+export function useBulkImportVoters(election_id: string) {
+  return useApiMutation(
+    ({ file, identifierColumn }: { file: File; identifierColumn: string }) => 
+      bulkImportVoters(election_id, file, identifierColumn),
     {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.election.voters(election_id) });
